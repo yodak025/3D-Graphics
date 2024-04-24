@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home, Sweet Home... </title>
+
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .instruction {
+            margin-bottom: 10px;
+        }
+
+        .key {
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            margin-right: 5px;
+            border-radius: 5px;
+            background-color: #f4f4f4;
+        }
+        
+        .column{
+            float: left;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 10px;
+        }
+    </style>
+
+</head>
+
+<body onload="init()">
+    <h1>Home, Sweet Home...</h1>
+    <hr>
+    </hr>
+    <div>
+        <div class="column">
+            <canvas id="Canvas" width="640" height="480"></canvas>
+            <br>
+            Step: <input type="text" value="0.01" id="step">
+            <button onclick="init()">Reset</button>
+        </div>
+        <div class="column">
+
+            <div class="instruction">o <span class="key">Flecha izquierda:</span> Traslación a la izquierda del eje X
+                (el arco
+                se mueve a la izquierda)</div>
+            <div class="instruction">o <span class="key">Flecha derecha:</span> Traslación a la derecha del eje X (el
+                arco se
+                mueve a la derecha)</div>
+            <div class="instruction">o <span class="key">Flecha arriba:</span> Traslación hacia arriba en el eje Y (el
+                arco se
+                mueve hacia arriba)</div>
+            <div class="instruction">o <span class="key">Flecha abajo:</span> Traslación hacia abajo en el eje Y (el
+                arco se
+                mueve hacia abajo)</div>
+            <div class="instruction">o <span class="key">Tecla RePag (PgUp):</span> Aumento de escala (el arco se hace
+                más
+                grande)</div>
+            <div class="instruction">o <span class="key">Tecla AvPag (PgDown):</span> Contracción de escala (el arco se
+                hace más
+                pequeño)</div>
+            <div class="instruction">o <span class="key">Tecla w:</span> Traslación del tejado hacia arriba en el eje Y
+                (solo el
+                tejado se mueve hacia arriba)</div>
+            <div class="instruction">o <span class="key">Tecla a:</span> Traslación del tejado a la izquierda en el eje
+                X (solo
+                el tejado se mueve hacia la izquierda)</div>
+            <div class="instruction">o <span class="key">Tecla s:</span> Traslación del tejado hacia abajo en el eje Y
+                (solo el
+                tejado se mueve hacia abajo)</div>
+            <div class="instruction">o <span class="key">Tecla d:</span> Traslación del tejado a la derecha en el eje X
+                (solo el
+                tejado se mueve hacia la derecha)</div>
+            <div class="instruction">o <span class="key">Tecla z:</span> Giro positivo del tejado según el eje Y</div>
+            <div class="instruction">o <span class="key">Tecla x:</span> Giro negativo de la columna izquierda según el
+                eje Z
+            </div>
+            <div class="instruction">o <span class="key">Tecla c:</span> Giro positivo de la columna derecha según el
+                eje Z
+            </div>
+        </div>
+    </div>
+
+
+</body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/3.4.2/gl-matrix-min.js"></script>
+
+<script id="vertexShader" , type="x-shader/x-vertex">
+    attribute vec4 a_Position;
+    uniform mat4 u_Matrix;
+    void main() {
+        gl_Position = u_Matrix * a_Position;
+    }
+    </script>
+
+<script id="fragmentShader" , type="x-shader/x-fragment">
+    void main() {
+        gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);
+    }
+</script>
+<script>
+    const { mat2, mat2d, mat4, mat3, quat, quat2, vec2, vec3, vec4 } = glMatrix;
+
+
+
+    class Home {
+        constructor(canvas_id) {
+            this.ctx = this._set_context(canvas_id);
+            this.position = new function () {
+                this.x = 0.0;
+                this.y = 0.0;
+                this.scale = 0.0
+                this.roof_x = 0.0;
+                this.roof_y = 0.0;
+                this.roof_theta = 0.0;
+                this.found_left = 0.0;
+                this.found_right = 0.0;
+            }
+
+            this._set_shaders("vertexShader", "fragmentShader");
+            this.draw_home();
+        }
+
+        _set_context(id) {
+            // Gets the webGL context, and sets the clean black canvas.
+            let canvas = document.getElementById(id);
+            var gl = canvas.getContext("webgl");
+            if (!gl) {
+                alert("Unable to initialize WebGL. Your browser or machine may not support it.");
+                return;
+            }
+            gl.clearColor(0.0, 0.0, 1.0, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            return gl;
+        }
+
+
+        _set_shaders(vertex_id, fragment_id) {
+
+            // Create a vertex shader object and a fragment shader object.
+            let vertex = document.getElementById(vertex_id).innerHTML;
+            let fragment = document.getElementById(fragment_id).innerHTML;
+
+            var vertex_shader = this.ctx.createShader(this.ctx.VERTEX_SHADER);
+            this.ctx.shaderSource(vertex_shader, vertex);
+            this.ctx.compileShader(vertex_shader);
+            if (!this.ctx.getShaderParameter(vertex_shader, this.ctx.COMPILE_STATUS)) {
+                alert("Error compiling shader: " + this.ctx.getShaderInfoLog(vertex_shader));
+                return;
+            }
+            var fragment_shader = this.ctx.createShader(this.ctx.FRAGMENT_SHADER);
+            this.ctx.shaderSource(fragment_shader, fragment);
+            this.ctx.compileShader(fragment_shader);
+            if (!this.ctx.getShaderParameter(fragment_shader, this.ctx.COMPILE_STATUS)) {
+                alert("Error compiling shader: " + this.ctx.getShaderInfoLog(fragment_shader));
+
+                return;
+            }
+
+            // Create a program object
+            let program = this.ctx.createProgram();
+            this.ctx.attachShader(program, vertex_shader);
+            this.ctx.attachShader(program, fragment_shader);
+            this.ctx.linkProgram(program);
+            this.ctx.useProgram(program);
+            this.ctx.program = program;
+            return true;
+        }
+
+
+
+
+        _set_buffer(points, move) {
+            let dim = 3;
+            var vert = new Float32Array(points);
+
+            var buffer = this.ctx.createBuffer();
+            if (!buffer) {
+                console.log('Failed to create the buffer object');
+                return -1;
+            }
+            this.ctx.bindBuffer(this.ctx.ARRAY_BUFFER, buffer);
+            this.ctx.bufferData(this.ctx.ARRAY_BUFFER, vert, this.ctx.STATIC_DRAW);
+
+            // Assign the vertices in buffer object to gl_Position variable
+            var gl_Position = this.ctx.getAttribLocation(this.ctx.program, "a_Position");
+
+            if (gl_Position < 0) {
+                console.log('Failed to get the storage location of a_Position');
+                return -1;
+            }
+            this.ctx.vertexAttribPointer(gl_Position, dim, this.ctx.FLOAT, false, 0, 0);
+            this.ctx.enableVertexAttribArray(gl_Position);
+
+            let u_Matrix = this.ctx.getUniformLocation(this.ctx.program, "u_Matrix");
+            if (!u_Matrix) {
+                console.log('Failed to get the storage location of u_Matrix');
+                return -1;
+            }
+            this.ctx.uniformMatrix4fv(u_Matrix, false, move);
+
+
+            // Return number of vertices
+            return vert.length / dim;
+        }
+
+
+        _set_rooftop(move = mat4.create()) {
+            // Draws the roof with a triangle.
+            let roof = [
+                0.0, 0.8, 0,
+                0.6, 0.2, 0,
+                -0.6, 0.2, 0
+            ];
+            this.ctx.drawArrays(
+                this.ctx.TRIANGLES, 0,
+                this._set_buffer(roof, move)
+            );
+
+        }
+
+        _set_foundation(move_l = mat4.create(), move_r = mat4.create()) {
+            // Draws the rectangles.
+            let fnd_right = [
+                0.4, -0.5, 0,
+                0.2, -0.5, 0,
+                0.4, 0.2, 0,
+
+                0.2, -0.5, 0,
+                0.4, 0.2, 0,
+                0.2, 0.2, 0
+            ];
+
+            let fnd_left = [
+
+                -0.4, -0.5, 0,
+                -0.2, -0.5, 0,
+                -0.4, 0.2, 0,
+
+                -0.2, -0.5, 0,
+                -0.4, 0.2, 0,
+                -0.2, 0.2, 0,
+            ];
+
+            this.ctx.drawArrays(
+                this.ctx.TRIANGLES, 0,
+                this._set_buffer(fnd_right, move_r)
+            );
+            this.ctx.drawArrays(
+                this.ctx.TRIANGLES, 0,
+                this._set_buffer(fnd_left, move_l)
+            );
+
+        }
+
+
+        draw_home(r_mat = mat4.create(), t_mat_l = mat4.create(), t_mat_r = mat4.create()) {
+
+            // Draws the home.
+            this.ctx.clear(this.ctx.COLOR_BUFFER_BIT);
+            this._set_rooftop(r_mat);
+            this._set_foundation(t_mat_l, t_mat_r);
+        }
+
+
+    }
+    function init() {
+        const step = new Number(document.getElementById("step").value);
+        home = new Home("Canvas");
+
+        document.onkeydown = function (ev) {
+            switch (ev.key) {
+                case "ArrowLeft": // Left
+                    home.position.x -= step;
+                    break;
+
+                case "ArrowRight": // Right
+                    home.position.x += step;
+                    break;
+
+                case "ArrowUp": // Up
+                    home.position.y += step;
+                    break;
+
+                case "ArrowDown": // Down
+                    home.position.y -= step;
+                    break;
+
+                case "PageUp": // PageUp
+                    home.position.scale += step;
+                    break;
+
+                case "PageDown": // PageDown
+                    // ...
+                    home.position.scale -= step;
+                    break;
+                case "w": // w
+
+                    home.position.roof_y += step;
+                    break;
+
+                case "a": // a
+                    home.position.roof_x -= step;
+                    break;
+                case "s": // s
+                    home.position.roof_y -= step;
+                    break;
+                case "d": // d
+                    home.position.roof_x += step;
+                    break;
+                case "z": // z
+                    home.position.roof_theta += step;
+                    if (home.position.roof_theta > Math.PI) {
+                        home.position.roof_theta -= Math.PI;
+                    }
+                    break
+                case "x": // x
+                    home.position.found_left -= step;
+                    if (home.position.found_left > Math.PI) {
+                        home.position.found_left -= Math.PI;
+                    }
+                    break
+                case "c": // c
+                    home.position.found_right += step;
+                    if (home.position.found_right < 0) {
+                        home.position.found_right += Math.PI;
+                    }
+                    break
+            }
+
+            let fx = Math.sin(home.position.x);
+            let fy = Math.sin(home.position.y);
+
+            let rx = Math.sin(home.position.x + home.position.roof_x);
+            let ry = Math.sin(home.position.y + home.position.roof_y);
+            let ls = Math.abs(1 + home.position.scale);
+
+            var f_pos = mat4.fromTranslation(mat4.create(), [fx, fy, 0.0]);
+            var r_pos = mat4.fromTranslation(mat4.create(), [rx, ry, 0.0]);
+            
+            var f_rot_l = mat4.fromZRotation(mat4.create(), home.position.found_left);
+            var f_rot_r = mat4.fromZRotation(mat4.create(), home.position.found_right);
+            var r_rot = mat4.fromYRotation(mat4.create(), home.position.roof_theta);
+            var r_scl = mat4.fromScaling(mat4.create(), [ls, ls, 1.0]);
+
+            let r_slc_pos = mat4.multiply(mat4.create(), r_scl, r_pos);
+
+            var f_matrix_l = mat4.multiply(mat4.create(), f_pos, f_rot_l);
+            var f_matrix_r = mat4.multiply(mat4.create(), f_pos, f_rot_r);
+            var r_matrix = mat4.multiply(mat4.create(), r_slc_pos, r_rot);
+
+            home.draw_home(r_matrix, f_matrix_l, f_matrix_r);
+        };
+
+    }
+
+
+
+
+
+
+
+
+
+</script>
+
+</html>

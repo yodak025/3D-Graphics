@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear canvas</title>
+</head>
+
+<body onload="init()">
+    <canvas id="canvas" width="1000px" height="500px"></canvas>
+    <button onclick="location.href='single_point.html'">Single Point</button>
+</body>
+<script>
+    function init() {
+        var canvas = document.getElementById("canvas");
+
+        var gl = canvas.getContext("webgl");
+        if (!gl) {
+            console.log("Error: Unable to get WebGL context");
+            return
+        }
+
+        gl.clearColor(1.0, 0.0, 1.0, 0.2);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+</script>
+
+</html>

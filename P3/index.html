@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TriSnake</title>
+</head>
+
+<body onload="init()">
+    <canvas id="TSCanvas" width="1500" height="900"></canvas>
+
+</body>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+    attribute vec4 a_Position;
+    void main() {
+    gl_Position = a_Position;
+    gl_PointSize = 10.0;
+    }
+    </script>
+
+<script id="fragmentShader" , type="x-shader/x-fragment">
+    precision mediump float;
+    uniform vec4 u_color;
+    void main() {
+        gl_FragColor = u_color;
+    }
+</script>
+
+<script>
+    var POINTS = [];
+    var COLORS = []
+    var clicks = 0
+
+    function init() {
+
+        var canvas = document.getElementById("TSCanvas");
+        gl = set_context(canvas)
+
+        var vertex = document.getElementById('vertexShader').innerHTML;
+        var fragment = document.getElementById('fragmentShader').innerHTML;
+
+        set_shaders(gl, vertex, fragment);
+
+
+        canvas.onmousedown = function (ev) {
+            
+            POINTS.push(click(ev, gl, canvas));
+            COLORS.push(getColor())
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            if (clicks < 2){
+                gl.drawArrays(gl.POINTS, 0, setBuffer(gl, POINTS, COLORS));
+            } else {
+                gl.drawArrays(gl.TRIANGLES, 0, setBuffer(gl, POINTS, COLORS));
+            }
+            
+        };
+
+    }
+
+    function getColor() {
+        if (clicks % 3 == 0) {
+            color = [1.0, 0.0, 0.0, 1]
+        } else if(clicks % 3 == 1) {
+            color = [0.0, 1.0, 0.0, 1]
+        } else{
+            color = [0.0, 0.0, 1.0, 1]
+        }
+        return color
+    }
+
+    function set_shaders(gl, vertex, fragment) {
+        // Create the shader program
+        var shaderProgram = gl.createProgram();
+        // Create the vertex shader
+        var vertexShader = gl.create
+    }
+
+    function click(ev, gl, canvas) {
+        // Coordinates of canvas origin
+        var rect = ev.target.getBoundingClientRect();
+        // relative x coordinate of click in canvas
+        var clickX = ev.clientX - rect.left;
+        // relative y coordinate of click in canvas
+        var clickY = ev.clientY - rect.top;
+        // WebGL coordinates (3D)
+        var halfCanvasWidth = canvas.width / 2;
+        var halfCanvasHeight = canvas.height / 2;
+        var x = (clickX - halfCanvasWidth) / halfCanvasWidth;
+        var y = (halfCanvasHeight - clickY) / halfCanvasHeight;
+        return [x, y, 0];
+    }
+
+    function set_context(canvas){
+        // Gets the webGL context, and sets the clean black canvas.
+        var gl = canvas.getContext("webgl");
+        if (!gl) {
+            alert("Unable to initialize WebGL. Your browser or machine may not support it.");
+            return;
+        }
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        return gl;
+    }
+    function set_shaders(gl, vertex, fragment){
+
+        // Create a vertex shader object and a fragment shader object.
+        var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+            gl.shaderSource(vertex_shader, vertex);
+            gl.compileShader(vertex_shader);
+            if (!gl.getShaderParameter(vertex_shader, gl.COMPILE_STATUS)) {
+                alert("Error compiling shader: " + gl.getShaderInfoLog(vertex_shader));
+                return;
+            }
+            var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fragment_shader, fragment);
+            gl.compileShader(fragment_shader);
+            if (!gl.getShaderParameter(fragment_shader, gl.COMPILE_STATUS)) {
+                alert("Error compiling shader: " + gl.getShaderInfoLog(fragment_shader));
+                return;
+            }
+            // Create a program object
+            let program = gl.createProgram();
+            gl.attachShader(program, vertex_shader);
+            gl.attachShader(program, fragment_shader);
+            gl.linkProgram(program);
+            gl.useProgram(program);
+            gl.program = program;
+            return true;
+        }
+
+    function setBuffer(gl, p, c){
+        let dim = 3;
+        if (clicks < 2){
+            var vert = new Float32Array(array2vect3(p));
+        } else {
+            var vert = new Float32Array(array2triangle(p));
+        }
+        
+        var color = new Int32Array(array2vect4(c));
+        clicks += 1;
+
+        var buffer = gl.createBuffer();
+        if (!buffer) {
+            console.log('Failed to create the buffer object');
+            return -1;
+        }
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vert, gl.STATIC_DRAW);
+
+        // Assign the vertices in buffer object to gl_Position variable
+        var gl_Position = gl.getAttribLocation(gl.program, "a_Position");
+        
+        if (gl_Position < 0) {
+            console.log('Failed to get the storage location of a_Position');
+            return -1;
+        }
+        gl.vertexAttribPointer(gl_Position, dim, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(gl_Position);
+        
+
+        // Assign the color to gl_FragColor variable
+        var gl_FragColor = gl.getUniformLocation(gl.program, 'u_color');
+        if (gl_FragColor < 0) {
+            console.log('Failed to get the storage location of u_color');
+            return -1;
+        }
+        gl.uniform4fv(gl_FragColor, getColor());
+
+        // Return number of vertices
+        return vert.length / dim;
+            
+    }
+    function array2vect3(mat){
+        let v = []
+        for (let i = 0; i < mat.length; i++) {
+            v[3*i] = mat[i][0];
+            v[3*i+1] = mat[i][1];
+            v[3*i+2] = mat[i][2];
+        }
+        return v;   
+    }
+    function array2vect4(mat){
+        let v = []
+        for (let i = 0; i < mat.length; i++) {
+            v[4*i] = mat[i][0];
+            v[4*i+1] = mat[i][1];
+            v[4*i+2] = mat[i][2];
+            v[4*i+3] = mat[i][3];
+        }
+        return v;   
+    }
+
+    function array2triangle(mat){
+        let tr = []
+        for (let i = 0; i < mat.length-2; i++) {
+            tr[3*i] = mat[i];
+            tr[3*i+1] = mat[i+1];
+            tr[3*i+2] = mat[i+2];
+        }
+        return array2vect3(tr);   
+        
+    }
+</script>
+
+
+
+</html>

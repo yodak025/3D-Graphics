@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body onload="init()">
+    <h1 onclick="window.alert(
+        'No see, no see por que, la casa giratoria gira gira pero nunca toria, la casa giratoria gira gira pero nunca toria, la casa giratoria gira gira pero nunca toriaaaaaaaa!!!!! ... SABE A MIXTA. '
+        )">Es la casa giratoria!!!</h1>
+    <canvas id="myCanvas" width="640" height="480"></canvas><br>
+    <b>Rotation</b>
+    <input type="checkbox" name="rotation" checked>
+    <input type="range" id="speed" min="1" max="3" value="2" step="1"> Speed<br>
+    <b>WebGL primitive</b>
+    <input type="radio" name="primitive" value="triangles" checked> Triangles
+    <input type="radio" name="primitive" value="lines"> Lines<br>
+    <b>Projection type</b>
+    <input type="radio" name="projection" value="perspective" checked> Perspective
+    <input type="radio" name="projection" value="orthographic"> Orthographic<br>
+    <b>Decoration</b>
+    <input type="radio" name="lights" value="no" checked> No
+    <input type="radio" name="lights" value="yes"> Yes<br>
+</body>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/3.4.2/gl-matrix-min.js"></script>
+
+<script id="vertexShader" , type="x-shader/x-vertex">
+
+    attribute vec4 a_Position;
+    attribute vec2 a_TexCoord;
+    attribute vec2 a_LCoord;
+    varying vec2 v_TexCoord;
+    varying vec2 v_LCoord;
+
+    uniform mat4 u_pMatrix;
+    uniform mat4 u_vMatrix;
+    uniform mat4 u_mvMatrix;
+
+    void main() {
+        gl_Position = u_pMatrix * u_vMatrix * u_mvMatrix * a_Position;
+        v_TexCoord = a_TexCoord;
+        v_LCoord = a_LCoord;
+    }
+
+    </script>
+
+<script id="fragmentShader" , type="x-shader/x-fragment">
+
+    precision mediump float;
+    uniform sampler2D u_Sampler0;
+    uniform sampler2D u_Sampler1;
+    varying vec2 v_TexCoord;
+    varying vec2 v_LCoord;
+
+    uniform int its_on;
+
+    void main() {
+        vec4 color0 = texture2D(u_Sampler0, v_TexCoord);
+        
+        if (its_on == 1) {
+            
+            vec4 color1 = texture2D(u_Sampler1, v_LCoord);
+            gl_FragColor = color0 * color1;
+
+        } else {
+
+            gl_FragColor = color0;
+
+        }
+        
+        
+
+    }
+
+</script>
+
+
+<script>
+
+    const { mat2, mat2d, mat4, mat3, quat, quat2, vec2, vec3, vec4 } = glMatrix;
+
+
+    
+    class GiraGiraPeroNuncaToria {
+
+        constructor(canvas_id) {
+            this.ctx = this._set_context(canvas_id);
+            this.draw = this.ctx.TRIANGLES
+            this.ctx.enable(this.ctx.DEPTH_TEST);
+            this.CANVAS = document.getElementById(canvas_id)
+            this.is_ortho = false
+            this.lights_turned_on = false
+
+
+            this._set_shaders("vertexShader", "fragmentShader");
+            this.set_textures();
+            this.draw_home(mat4.create(), 0, 0);
+        }
+
+
+
+        _set_context(id) {
+            // Gets the webGL context, and sets the clean black canvas.
+            let canvas = document.getElementById(id);
+            var gl = canvas.getContext("webgl");
+            if (!gl) {
+                alert("Unable to initialize WebGL. Your browser or machine may not support it.");
+                return;
+            }
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            return gl;
+        }
+
+
+        _load_texture(samplerUniform, unitNumber, flip) {
+
+            // Flip the image's y axis
+            this.ctx.pixelStorei(this.ctx.UNPACK_FLIP_Y_WEBGL, flip);
+            // Activate and configure texture
+            this.ctx.activeTexture(this.ctx.TEXTURE0 + unitNumber);
+            this.ctx.bindTexture(this.ctx.TEXTURE_2D, this.ctx.createTexture());
+            this.ctx.texImage2D(this.ctx.TEXTURE_2D, 0, this.ctx.RGBA, this.ctx.RGBA, this.ctx.UNSIGNED_BYTE, this.tex);
+
+            if (unitNumber == 1) {
+                this.ctx.texImage2D(this.ctx.TEXTURE_2D, 0, this.ctx.RGBA, this.ctx.RGBA, this.ctx.UNSIGNED_BYTE, this.lights);
+            } else {
+                this.ctx.texImage2D(this.ctx.TEXTURE_2D, 0, this.ctx.RGBA, this.ctx.RGBA, this.ctx.UNSIGNED_BYTE, this.tex);
+            }
+
+            const isPowerOf2 = (a) => (a & (a - 1)) === 0 && a !== 0;
+            if (isPowerOf2(this.tex.width) && isPowerOf2(this.tex.height)) {
+
+                this.ctx.generateMipmap(this.ctx.TEXTURE_2D);
+
+            } else {
+
+                this.ctx.texParameteri(this.ctx.TEXTURE_2D, this.ctx.TEXTURE_WRAP_S, this.ctx.CLAMP_TO_EDGE);
+                this.ctx.texParameteri(this.ctx.TEXTURE_2D, this.ctx.TEXTURE_WRAP_T, this.ctx.CLAMP_TO_EDGE);
+                this.ctx.texParameteri(this.ctx.TEXTURE_2D, this.ctx.TEXTURE_MIN_FILTER, this.ctx.LINEAR);
+
+            }
+            // Set texture to the sampler
+            var fragmentSamplerUniform = this.ctx.getUniformLocation(this.ctx.program, samplerUniform);
+            this.ctx.uniform1i(fragmentSamplerUniform, unitNumber);
+
+        }
+
+
+        _set_shaders(vertex_id, fragment_id) {
+
+            // Create a vertex shader object and a fragment shader object.
+            let vertex = document.getElementById(vertex_id).innerHTML;
+            let fragment = document.getElementById(fragment_id).innerHTML;
+
+            var vertex_shader = this.ctx.createShader(this.ctx.VERTEX_SHADER);
+            this.ctx.shaderSource(vertex_shader, vertex);
+            this.ctx.compileShader(vertex_shader);
+            if (!this.ctx.getShaderParameter(vertex_shader, this.ctx.COMPILE_STATUS)) {
+                alert("Error compiling shader: " + this.ctx.getShaderInfoLog(vertex_shader));
+                return;
+            }
+            var fragment_shader = this.ctx.createShader(this.ctx.FRAGMENT_SHADER);
+            this.ctx.shaderSource(fragment_shader, fragment);
+            this.ctx.compileShader(fragment_shader);
+            if (!this.ctx.getShaderParameter(fragment_shader, this.ctx.COMPILE_STATUS)) {
+                alert("Error compiling shader: " + this.ctx.getShaderInfoLog(fragment_shader));
+
+                return;
+            }
+
+            // Create a program object
+            let program = this.ctx.createProgram();
+            this.ctx.attachShader(program, vertex_shader);
+            this.ctx.attachShader(program, fragment_shader);
+            this.ctx.linkProgram(program);
+            this.ctx.useProgram(program);
+            this.ctx.program = program;
+            return true;
+        }
+
+
+        _set_buffer(points, move, st, l = false) {
+            var vert = new Float32Array(points);
+            var tex = new Float32Array(st);
+            var light = new Float32Array(l);
+
+
+            var buffer = this.ctx.createBuffer();
+            if (!buffer) {
+                console.log('Failed to create the buffer object');
+                return -1;
+            }
+
+            this.ctx.bindBuffer(this.ctx.ARRAY_BUFFER, buffer);
+            this.ctx.bufferData(this.ctx.ARRAY_BUFFER, vert, this.ctx.STATIC_DRAW);
+
+            // Assign the vertices in buffer object to gl_Position variable
+            var gl_Position = this.ctx.getAttribLocation(this.ctx.program, "a_Position");
+
+            if (gl_Position < 0) {
+                console.log('Failed to get the storage location of a_Position');
+                return -1;
+            }
+
+            this.ctx.vertexAttribPointer(gl_Position, 3, this.ctx.FLOAT, false, 0, 0);
+            this.ctx.enableVertexAttribArray(gl_Position);
+
+
+            var texBuffer = this.ctx.createBuffer();
+            if (!texBuffer) {
+                console.log('Failed to create the buffer object');
+                return -1;
+            }
+
+            this.ctx.bindBuffer(this.ctx.ARRAY_BUFFER, texBuffer);
+            this.ctx.bufferData(this.ctx.ARRAY_BUFFER, tex, this.ctx.STATIC_DRAW);
+
+            var a_TexCoord = this.ctx.getAttribLocation(this.ctx.program, "a_TexCoord");
+
+            if (a_TexCoord < 0) {
+                console.log('Failed to get the storage location of a_TexCoord');
+                return -1;
+            }
+
+            this.ctx.vertexAttribPointer(a_TexCoord, 2, this.ctx.FLOAT, false, 0, 0);
+            this.ctx.enableVertexAttribArray(a_TexCoord);
+
+
+            var lBuffer = this.ctx.createBuffer();
+            if (!lBuffer) {
+                console.log('Failed to create the buffer object');
+                return -1;
+            }
+
+            this.ctx.bindBuffer(this.ctx.ARRAY_BUFFER, lBuffer);
+            this.ctx.bufferData(this.ctx.ARRAY_BUFFER, light, this.ctx.STATIC_DRAW);
+
+            var a_LCoord = this.ctx.getAttribLocation(this.ctx.program, "a_LCoord");
+
+            if (a_LCoord < 0) {
+                console.log('Failed to get the storage location of a_LCoord');
+                return -1;
+            }
+
+            this.ctx.vertexAttribPointer(a_LCoord, 2, this.ctx.FLOAT, false, 0, 0);
+            this.ctx.enableVertexAttribArray(a_LCoord);
+
+
+            let u_mvMatrix = this.ctx.getUniformLocation(this.ctx.program, "u_mvMatrix");
+            if (!u_mvMatrix) {
+                console.log('Failed to get the storage location of u_mvMatrix');
+                return -1;
+            }
+
+            this.ctx.uniformMatrix4fv(u_mvMatrix, false, move);
+
+            var secondTextureUniform = this.ctx.getUniformLocation(this.ctx.program, "its_on");
+            this.ctx.uniform1i(secondTextureUniform, this.lights_turned_on ? 1 : 0);
+
+
+            // Return number of vertices
+            return vert.length / 3;
+        }
+
+
+        _set_projection(z, y) {
+            // Sets the projection matrix.
+
+            if (this.is_ortho) {
+                var pMatrixUniform = this.ctx.getUniformLocation(this.ctx.program, "u_pMatrix");
+                var ratio = this.CANVAS.width / this.CANVAS.height;
+                var pMatrix = mat4.ortho(mat4.create(), -ratio, ratio, -1.0, 1.0, -1.0, 1.0);
+                this.ctx.uniformMatrix4fv(pMatrixUniform, false, pMatrix);
+
+                var vMatrixUniform = this.ctx.getUniformLocation(this.ctx.program, "u_vMatrix");
+                this.ctx.uniformMatrix4fv(vMatrixUniform, false, mat4.create());
+            }
+
+            else {
+                var pMatrixUniform = this.ctx.getUniformLocation(this.ctx.program, "u_pMatrix");
+                var ratio = this.CANVAS.width / this.CANVAS.height;
+                var pMatrix = mat4.perspective(mat4.create(), Math.PI / 3, ratio, 0.1, 100);
+                this.ctx.uniformMatrix4fv(pMatrixUniform, false, pMatrix);
+
+                // Write u_vMatrix
+                var vMatrixUniform = this.ctx.getUniformLocation(this.ctx.program, "u_vMatrix");
+                var vMatrix = mat4.lookAt(mat4.create(), [0, y, z], [0, 0, 0], [0, 1, 0]);
+                this.ctx.uniformMatrix4fv(vMatrixUniform, false, vMatrix);
+            }
+
+
+        }
+
+    }
+
+
+
+    class Home extends GiraGiraPeroNuncaToria {
+
+        constructor(canvas_id) {
+            super(canvas_id);
+
+            this.draw_home(mat4.create(), 0, 0);
+        }
+
+
+
+        _set_rooftop(rot = mat4.create()) {
+            // Draws the roof with a triangle.
+            // Roof front
+            const roofFront = [
+                0.0, 0.8, 0,
+                0.6, 0.2, -0.6,
+                -0.6, 0.2, -0.6
+            ];
+
+            // Roof right
+            const roofRight = [
+                0.0, 0.8, 0,
+                0.6, 0.2, 0.6,
+                0.6, 0.2, -0.6,
+
+            ];
+
+            // Roof back
+            const roofBack = [
+                0.0, 0.8, 0,
+                0.6, 0.2, 0.6,
+                -0.6, 0.2, 0.6
+            ];
+
+            // Roof left
+            const roofLeft = [
+                0.0, 0.8, 0,
+                -0.6, 0.2, -0.6,
+                -0.6, 0.2, 0.6
+            ];
+
+            // Roof bottom
+            const roofBottom = [
+                -0.6, 0.2, -0.6,
+                -0.6, 0.2, 0.6,
+                0.6, 0.2, 0.6,
+                -0.6, 0.2, -0.6,
+                0.6, 0.2, -0.6,
+                0.6, 0.2, 0.6
+            ];
+
+
+            const glass = [
+                0.75, 1.0,
+                0.5, 0.6,
+                1.0, 0.6
+            ]
+
+            const tiles = [
+                0.25, 0.5,
+                0.0, 0.0,
+                0.5, 0.0
+            ]
+
+            const bott_tiles = [
+                0.0, 0.0,
+                0.0, 0.5,
+                0.5, 0.5,
+                0.0, 0.0,
+                0.5, 0.0,
+                0.5, 0.5
+            ]
+
+            const trilight = [
+                0.5, 1.0,
+                0.0, 0.0,
+                1.0, 0.0
+            ]
+
+            const tetralight = [
+                0.0, 0.0,
+                0.0, 1.0,
+                1.0, 1.0,
+                0.0, 0.0,
+                1.0, 0.0,
+                1.0, 1.0
+            ]
+
+
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(roofFront, rot, glass, trilight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(roofRight, rot, tiles, trilight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(roofBack, rot, tiles, trilight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(roofLeft, rot, tiles, trilight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(roofBottom, rot, bott_tiles, tetralight)
+            );
+
+        }
+
+
+        _set_foundation(rot = mat4.create()) {
+            // Draws the rectangles.
+            // Coordenadas para fnd_right (frontal)
+            const fnd_right_front = [
+                0.4, -0.5, -0.1,
+                0.2, -0.5, -0.1,
+                0.4, 0.2, -0.1,
+                0.2, -0.5, -0.1,
+                0.4, 0.2, -0.1,
+                0.2, 0.2, -0.1
+            ];
+
+            // Coordenadas para fnd_right (trasera)
+            const fnd_right_back = [
+                0.4, -0.5, 0.1,
+                0.2, -0.5, 0.1,
+                0.4, 0.2, 0.1,
+                0.2, -0.5, 0.1,
+                0.4, 0.2, 0.1,
+                0.2, 0.2, 0.1
+            ];
+
+            // Coordenadas para fnd_right (izquierda)
+            const fnd_right_left = [
+
+                0.2, -0.5, 0.1, //1  5               
+                0.2, -0.5, -0.1, //2  4
+                0.2, 0.2, 0.1, //3  6
+                0.2, -0.5, -0.1, // 4  1                                              
+                0.2, 0.2, 0.1, // 5  3
+                0.2, 0.2, -0.1, //6  2  
+            ];
+
+            // Coordenadas para fnd_right (derecha)
+            const fnd_right_right = [
+                0.4, -0.5, 0.1,
+                0.4, -0.5, -0.1,
+                0.4, 0.2, 0.1,
+                0.4, -0.5, -0.1,
+                0.4, 0.2, 0.1,
+                0.4, 0.2, -0.1
+
+
+            ];
+
+            // Coordenadas para fnd_right (inferior)
+            const fnd_right_bottom = [
+                0.2, -0.5, 0.1,
+                0.4, -0.5, -0.1,
+                0.4, -0.5, 0.1,
+                0.2, -0.5, -0.1,
+                0.2, -0.5, 0.1,
+                0.4, -0.5, -0.1
+
+            ];
+
+            // Coordenadas para fnd_left (frontal)
+            const fnd_left_front = [
+                -0.4, -0.5, -0.1,
+                -0.2, -0.5, -0.1,
+                -0.4, 0.2, -0.1,
+                -0.2, -0.5, -0.1,
+                -0.4, 0.2, -0.1,
+                -0.2, 0.2, -0.1
+            ];
+
+            // Coordenadas para fnd_left (trasera)
+            const fnd_left_back = [
+                -0.4, -0.5, 0.1,
+                -0.2, -0.5, 0.1,
+                -0.4, 0.2, 0.1,
+                -0.2, -0.5, 0.1,
+                -0.4, 0.2, 0.1,
+                -0.2, 0.2, 0.1
+
+            ];
+
+            // Coordenadas para fnd_left (izquierda)
+            const fnd_left_left = [
+                -0.2, -0.5, 0.1,
+                -0.2, -0.5, -0.1,
+                -0.2, 0.2, 0.1,
+                -0.2, -0.5, -0.1,
+                -0.2, 0.2, 0.1,
+                -0.2, 0.2, -0.1
+
+
+            ];
+
+            // Coordenadas para fnd_left (derecha)
+            const fnd_left_right = [
+                -0.4, -0.5, 0.1,
+                -0.4, -0.5, -0.1,
+                -0.4, 0.2, 0.1,
+                -0.4, -0.5, -0.1,
+                -0.4, 0.2, 0.1,
+                -0.4, 0.2, -0.1
+            ];
+
+            // Coordenadas para fnd_left (inferior)
+            const fnd_left_bottom = [
+                -0.2, -0.5, -0.1,
+                -0.4, -0.5, -0.1,
+                -0.2, -0.5, 0.1,
+                -0.4, -0.5, -0.1,
+                -0.2, -0.5, 0.1,
+                -0.4, -0.5, 0.1
+
+            ];
+
+            const stained_glass = [
+                0.5, 0.5,
+                0.0, 0.5,
+                0.5, 1.0,
+                0.0, 0.5,
+                0.5, 1.0,
+                0.0, 1.0,
+            ]
+
+            const wooden_door = [
+                1.0, 0.0,
+                0.5, 0.0,
+                1.0, 0.5,
+                0.5, 0.0,
+                1.0, 0.5,
+                0.5, 0.5,
+            ]
+
+            const tetralight = [
+                0.0, 0.0,
+                0.0, 1.0,
+                1.0, 1.0,
+                0.0, 0.0,
+                1.0, 0.0,
+                1.0, 1.0
+            ]
+
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(fnd_right_front, rot, wooden_door, tetralight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(fnd_left_front, rot, wooden_door, tetralight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(fnd_right_right, rot, stained_glass, tetralight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(fnd_left_right, rot, stained_glass, tetralight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(fnd_right_back, rot, stained_glass, tetralight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(fnd_left_back, rot, stained_glass, tetralight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(fnd_right_left, rot, stained_glass, tetralight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(fnd_left_left, rot, stained_glass, tetralight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(fnd_right_bottom, rot, stained_glass, tetralight)
+            );
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(fnd_left_bottom, rot, stained_glass, tetralight)
+            );
+
+        }
+
+
+
+        draw_home(rot = mat4.create(), theta = false, phi = false) {
+            // Draws the home.
+            this.ctx.clear(this.ctx.COLOR_BUFFER_BIT);
+            this._set_projection(theta, phi)
+            this._set_rooftop(rot);
+            this._set_foundation(rot)
+
+        }
+
+
+        set_textures() {
+            this.tex = new Image();
+            this.tex.src = 'portal.jpg';
+
+            this.lights = new Image();
+            this.lights.src = 'light.jpg';
+
+            this.tex.onload = () => {
+                this._load_texture("u_Sampler0", 0, true);
+                this.lights.onload = () => {
+                    this._load_texture("u_Sampler1", 1, true);
+                }
+            };
+        }
+
+
+        triangles() {
+            this.draw = this.ctx.TRIANGLES;
+        }
+
+
+        lines() {
+            this.draw = this.ctx.LINES;
+        }
+
+
+    }
+
+
+
+    function init() {
+
+        var home = new Home("myCanvas");
+
+
+        var rotation = document.getElementsByName("rotation")[0];
+
+        rotation.addEventListener("change", () => {
+            var rotationChecked = document.querySelector('input[name="rotation"]:checked');
+
+            if (rotationChecked) {
+                window.requestAnimationFrame(step);
+            }
+
+        });
+
+
+        var tr_btn = document.getElementsByName("primitive")[0];
+        tr_btn.addEventListener("change", () => { home.triangles() });
+
+        var ln_btn = document.getElementsByName("primitive")[1];
+        ln_btn.addEventListener("change", () => { home.lines() });
+
+
+        var projectionValue = document.querySelector('input[name="projection"]:checked').value;
+
+
+        var pers_btn = document.getElementsByName("projection")[0];
+        pers_btn.addEventListener("change", () => { home.is_ortho = false });
+
+        var orth_btn = document.getElementsByName("projection")[1];
+        orth_btn.addEventListener("change", () => { home.is_ortho = true });
+
+        var lights_btn = document.getElementsByName("lights")[0];
+        lights_btn.addEventListener("change", () => { home.lights_turned_on = false });
+
+        var darks_btn = document.getElementsByName("lights")[1];
+        darks_btn.addEventListener("change", () => { home.lights_turned_on = true });
+
+
+        let z = 2
+        document.addEventListener('wheel', function (event) {
+
+            if (!home.is_ortho) {
+                z = event.wheelDelta > 0 ? z - 1 : z + 1;
+                z = z < 0 ? 0 : z;
+            }
+
+        });
+        let y = 0
+        document.onkeydown = function (ev) {
+            switch (ev.key) {
+
+                case "ArrowUp": // Up
+                    y += 0.5
+                    break;
+
+                case "ArrowDown": // Down
+                    y -= 0.5
+                    break;
+            }
+        }
+
+
+        var speed = document.getElementById("speed").value;
+
+        function step(v) {
+
+            var rotationChecked = document.querySelector('input[name="rotation"]:checked');
+            var speed = document.getElementById("speed").value;
+            let prueba_mat = mat4.fromYRotation(mat4.create(), speed ** 2 * v / 1000);
+
+            if (home.is_ortho) {
+                home.draw_home(prueba_mat, 2, 0);
+
+            } else {
+
+                home.draw_home(prueba_mat, z, y);
+            }
+
+            if (rotationChecked) {
+                window.requestAnimationFrame(step);
+            }
+
+        }
+
+        window.requestAnimationFrame(step);
+
+    }
+
+</script>
+
+</html>

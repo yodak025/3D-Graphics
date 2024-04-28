@@ -85,7 +85,7 @@
     const { mat2, mat2d, mat4, mat3, quat, quat2, vec2, vec3, vec4 } = glMatrix;
 
 
-    
+
     class GiraGiraPeroNuncaToria {
 
         constructor(canvas_id) {
@@ -99,7 +99,6 @@
 
             this._set_shaders("vertexShader", "fragmentShader");
             this.set_textures();
-            this.draw_home(mat4.create(), 0, 0);
         }
 
 
@@ -636,10 +635,146 @@
 
 
 
+    class DeathStar extends GiraGiraPeroNuncaToria {
+
+        constructor(canvas_id) {
+            super(canvas_id);
+
+            this.sphere = {
+                lat: 50,
+                long: 50,
+                radius: 1
+
+            }
+            this.triangles()
+            this.draw_star(mat4.create(), 0, 0);
+        }
+
+        __triangle_2_coords(n, pts){
+            return [pts[n * 3], pts[n * 3 + 1], pts[n * 3 + 2]];
+
+        }
+
+        __triangle_2_texture(n, pts){
+            return [pts[n * 2], pts[n * 2 + 1]];
+
+        }
+
+
+        _set_sphere(rot = mat4.create()) {
+
+            var points = [];
+            var texPoints = [];
+
+            for (var i = 0; i < this.sphere.lat; i++) {
+                var theta = i * Math.PI / this.sphere.lat;
+                var sinTheta = Math.sin(theta);
+                var cosTheta = Math.cos(theta);
+                for (var j = 0; j < this.sphere.long; j++) {
+                    var phi = j * 2 * Math.PI / this.sphere.long;
+                    var sinPhi = Math.sin(phi);
+                    var cosPhi = Math.cos(phi);
+
+                    var x = cosPhi * sinTheta;
+                    var y = cosTheta;
+                    var z = sinPhi * sinTheta;
+                    
+                    points.push(this.sphere.radius * x);
+                    points.push(this.sphere.radius * y);
+                    points.push(this.sphere.radius * z);
+
+                    var u = (j / this.sphere.long);
+                    var v = (i / this.sphere.long);
+
+                    texPoints.push(u);
+                    texPoints.push(v);   
+
+
+                }
+            }
+
+            var polly = [];
+            var texture = [];
+
+            for (var ring = 0; ring < this.sphere.lat-1; ring++) {
+                for (var trgl = 0; trgl < 2 * (this.sphere.long); trgl++) {
+                    if (trgl%2 === 0) {
+
+                        polly.push(...this.__triangle_2_coords(trgl/2 + ring * this.sphere.long, points));
+                        polly.push(...this.__triangle_2_coords(trgl/2 + ring * this.sphere.long + 1, points));
+                        polly.push(...this.__triangle_2_coords(trgl/2 + (1 + ring) * this.sphere.long, points));
+
+                        texture.push(...this.__triangle_2_texture(trgl/2 + ring * this.sphere.long, texPoints));
+                        texture.push(...this.__triangle_2_texture(trgl/2 + ring * this.sphere.long + 1, texPoints));
+                        texture.push(...this.__triangle_2_texture(trgl/2 + (1 + ring) * this.sphere.long, texPoints));
+
+                    } else if (trgl%2 === 1) {
+
+                        polly.push(...this.__triangle_2_coords((trgl + 1)/2 + ring * this.sphere.long, points));
+                        polly.push(...this.__triangle_2_coords((trgl - 1)/2 + (1 + ring) * this.sphere.long, points));
+                        polly.push(...this.__triangle_2_coords((trgl + 1)/2 + (1 + ring) * this.sphere.long, points));
+
+                        texture.push(...this.__triangle_2_texture((trgl + 1)/2 + ring * this.sphere.long, texPoints));
+                        texture.push(...this.__triangle_2_texture((trgl - 1)/2 + (1 + ring) * this.sphere.long, texPoints));
+                        texture.push(...this.__triangle_2_texture((trgl + 1)/2 + (1 + ring) * this.sphere.long, texPoints));
+
+                    }
+                }
+            }
+
+
+            this.ctx.drawArrays(
+                this.draw, 0,
+                this._set_buffer(polly, rot, texture, texture)
+            );
+
+        }
+
+
+
+        draw_star(rot = mat4.create(), theta = false, phi = false) {
+            // Draws the home.
+            this.ctx.clear(this.ctx.COLOR_BUFFER_BIT);
+            this._set_projection(theta, phi)
+            this._set_sphere(rot);
+
+        }
+
+
+        set_textures() {
+            this.tex = new Image();
+            this.tex.src = 'deathstar.png';
+
+            this.lights = new Image();
+            this.lights.src = 'light.jpg';
+
+            this.tex.onload = () => {
+                this._load_texture("u_Sampler0", 0, true);
+                this.lights.onload = () => {
+                    this._load_texture("u_Sampler1", 1, true);
+                }
+            };
+        }
+
+
+        triangles() {
+            this.draw = this.ctx.TRIANGLES;
+        }
+
+
+        lines() {
+            this.draw = this.ctx.LINES;
+        }
+
+
+    }
+
+
+
     function init() {
 
         var home = new Home("myCanvas");
-
+        var deathStar = new DeathStar("myCanvas");
 
         var rotation = document.getElementsByName("rotation")[0];
 
@@ -708,12 +843,16 @@
             var speed = document.getElementById("speed").value;
             let prueba_mat = mat4.fromYRotation(mat4.create(), speed ** 2 * v / 1000);
 
+            
+
             if (home.is_ortho) {
-                home.draw_home(prueba_mat, 2, 0);
+                //home.draw_home(prueba_mat, 2, 0);
+                deathStar.draw_star(prueba_mat,2,0);
 
             } else {
 
-                home.draw_home(prueba_mat, z, y);
+                //home.draw_home(prueba_mat, z, y);
+                deathStar.draw_star(prueba_mat,z,y);
             }
 
             if (rotationChecked) {

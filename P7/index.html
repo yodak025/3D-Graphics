@@ -24,6 +24,12 @@
     <b>Decoration</b>
     <input type="radio" name="lights" value="no" checked> No
     <input type="radio" name="lights" value="yes"> Yes<br>
+
+    <input type="range" id="x" min="-2" max="2" value="1.1" step="0.1">X<br>
+    <input type="range" id="y" min="-2" max="2" value="0.8" step="0.1">Y<br>
+    <input type="range" id="z" min="-2" max="2" value="1.1" step="0.1">Z<br>
+
+
 </body>
 
 
@@ -54,27 +60,28 @@
     precision mediump float;
     uniform sampler2D u_Sampler0;
     uniform sampler2D u_Sampler1;
+    uniform sampler2D u_Sampler_DS;
     varying vec2 v_TexCoord;
     varying vec2 v_LCoord;
 
     uniform int its_on;
 
+    uniform int its_death_star;
+
     void main() {
         vec4 color0 = texture2D(u_Sampler0, v_TexCoord);
+        vec4 colorDS = texture2D(u_Sampler_DS, v_TexCoord);
         
-        if (its_on == 1) {
-            
+        if (its_on == 1) {           
             vec4 color1 = texture2D(u_Sampler1, v_LCoord);
             gl_FragColor = color0 * color1;
-
         } else {
-
-            gl_FragColor = color0;
-
+            if (its_death_star == 1) {
+                gl_FragColor = colorDS;
+            } else {
+                gl_FragColor = color0;
+            }
         }
-        
-        
-
     }
 
 </script>
@@ -95,6 +102,7 @@
             this.CANVAS = document.getElementById(canvas_id)
             this.is_ortho = false
             this.lights_turned_on = false
+            this.is_star = false
 
 
             this._set_shaders("vertexShader", "fragmentShader");
@@ -261,6 +269,9 @@
 
             var secondTextureUniform = this.ctx.getUniformLocation(this.ctx.program, "its_on");
             this.ctx.uniform1i(secondTextureUniform, this.lights_turned_on ? 1 : 0);
+
+            var starTextureUniform = this.ctx.getUniformLocation(this.ctx.program, "its_death_star");
+            this.ctx.uniform1i(starTextureUniform, this.is_star ? 1 : 0);
 
 
             // Return number of vertices
@@ -637,23 +648,28 @@
 
     class DeathStar extends GiraGiraPeroNuncaToria {
 
-        constructor(canvas_id) {
+        constructor(canvas_id, x0=0, y0=0, z0=0) {
             super(canvas_id);
 
             this.sphere = {
                 lat: 50,
                 long: 50,
-                radius: 1
-
+                radius: 0.2,
+                x: x0,
+                y: y0,
+                z: z0
             }
+            this.is_star = true;
             this.triangles()
             this.draw_star(mat4.create(), 0, 0);
         }
+
 
         __triangle_2_coords(n, pts){
             return [pts[n * 3], pts[n * 3 + 1], pts[n * 3 + 2]];
 
         }
+
 
         __triangle_2_texture(n, pts){
             return [pts[n * 2], pts[n * 2 + 1]];
@@ -661,7 +677,7 @@
         }
 
 
-        _set_sphere(rot = mat4.create()) {
+        _set_sphere(mov = mat4.create()) {
 
             var points = [];
             var texPoints = [];
@@ -725,7 +741,7 @@
 
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(polly, rot, texture, texture)
+                this._set_buffer(polly, mov, texture, texture)
             );
 
         }
@@ -734,9 +750,19 @@
 
         draw_star(rot = mat4.create(), theta = false, phi = false) {
             // Draws the home.
-            this.ctx.clear(this.ctx.COLOR_BUFFER_BIT);
+            // this.ctx.clear(this.ctx.COLOR_BUFFER_BIT);
+            this.move_star()
+
             this._set_projection(theta, phi)
-            this._set_sphere(rot);
+
+            let translation = mat4.fromTranslation(mat4.create(), [this.sphere.x, this.sphere.y, this.sphere.z])
+
+            let move = mat4.create()
+
+            mat4.multiply(move, translation, rot);
+
+            
+            this._set_sphere(move);
 
         }
 
@@ -749,11 +775,23 @@
             this.lights.src = 'light.jpg';
 
             this.tex.onload = () => {
-                this._load_texture("u_Sampler0", 0, true);
+                this._load_texture("u_Sampler_DS", 2, true);
                 this.lights.onload = () => {
                     this._load_texture("u_Sampler1", 1, true);
                 }
             };
+        }
+
+
+        move_star(){
+            let x = document.getElementById("x")
+            let y = document.getElementById("y")
+            let z = document.getElementById("z")
+
+
+            this.sphere.x = x.value
+            this.sphere.y = y.value;
+            this.sphere.z = z.value;
         }
 
 
@@ -775,7 +813,6 @@
 
         var home = new Home("myCanvas");
         var deathStar = new DeathStar("myCanvas");
-
         var rotation = document.getElementsByName("rotation")[0];
 
         rotation.addEventListener("change", () => {
@@ -789,10 +826,10 @@
 
 
         var tr_btn = document.getElementsByName("primitive")[0];
-        tr_btn.addEventListener("change", () => { home.triangles() });
+        tr_btn.addEventListener("change", () => { home.triangles(); deathStar.triangles() });
 
         var ln_btn = document.getElementsByName("primitive")[1];
-        ln_btn.addEventListener("change", () => { home.lines() });
+        ln_btn.addEventListener("change", () => { home.lines(); deathStar.lines() });
 
 
         var projectionValue = document.querySelector('input[name="projection"]:checked').value;
@@ -803,6 +840,7 @@
 
         var orth_btn = document.getElementsByName("projection")[1];
         orth_btn.addEventListener("change", () => { home.is_ortho = true });
+
 
         var lights_btn = document.getElementsByName("lights")[0];
         lights_btn.addEventListener("change", () => { home.lights_turned_on = false });
@@ -846,12 +884,12 @@
             
 
             if (home.is_ortho) {
-                //home.draw_home(prueba_mat, 2, 0);
+                home.draw_home(prueba_mat, 2, 0);
                 deathStar.draw_star(prueba_mat,2,0);
 
             } else {
 
-                //home.draw_home(prueba_mat, z, y);
+                home.draw_home(prueba_mat, z, y);
                 deathStar.draw_star(prueba_mat,z,y);
             }
 

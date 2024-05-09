@@ -102,6 +102,7 @@ function animate(mesh, renderer, scene, camera) {
                     mesh.position.y + maze.walls.dim[1]/2
                 ] ) {
                     mesh.position.x -= step;
+                    camera.position.x -= step;
                     }
                     break;
 
@@ -113,6 +114,7 @@ function animate(mesh, renderer, scene, camera) {
                     ] ) {
 
                     mesh.position.x += step;
+                    camera.position.x += step;
                     }
                     break;
 
@@ -123,6 +125,7 @@ function animate(mesh, renderer, scene, camera) {
                         (mesh.position.y + maze.walls.dim[1]/2) - 1
                     ] ) {
                     mesh.position.y -= step;
+                    camera.position.y -= step;
                     }
                     break;
 
@@ -133,6 +136,7 @@ function animate(mesh, renderer, scene, camera) {
                         (mesh.position.y + maze.walls.dim[1]/2) + 1
                     ] ) {
                     mesh.position.y += step;
+                    camera.position.y += step;
                     }
                     break;
             }
@@ -156,7 +160,7 @@ game.scene.add(grid);
 maze.set_borders(56, 62, 0.1)
 maze.set_walls()
 
-game.camera.position.z = 15;
+game.camera.position.z = 25;
 
 var geometry = new THREE.BoxGeometry(1, 1, 1);
 var material = new THREE.MeshNormalMaterial();

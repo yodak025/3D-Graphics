@@ -40,17 +40,22 @@
     attribute vec4 a_Position;
     attribute vec2 a_TexCoord;
     attribute vec2 a_LCoord;
+    attribute vec3 a_Normal;
+
     varying vec2 v_TexCoord;
     varying vec2 v_LCoord;
+    varying highp vec4 v_Normal;
 
     uniform mat4 u_pMatrix;
     uniform mat4 u_vMatrix;
     uniform mat4 u_mvMatrix;
+    uniform mat4 u_normalMatrix;
 
     void main() {
         gl_Position = u_pMatrix * u_vMatrix * u_mvMatrix * a_Position;
         v_TexCoord = a_TexCoord;
         v_LCoord = a_LCoord;
+        v_Normal = vec4(a_Normal, 1.0);
     }
 
     </script>
@@ -61,25 +66,37 @@
     uniform sampler2D u_Sampler0;
     uniform sampler2D u_Sampler1;
     uniform sampler2D u_Sampler_DS;
+    uniform vec3 u_LightDirection;
+
     varying vec2 v_TexCoord;
     varying vec2 v_LCoord;
+    varying highp vec4 v_Normal;
 
     uniform int its_on;
-
     uniform int its_death_star;
 
     void main() {
         vec4 color0 = texture2D(u_Sampler0, v_TexCoord);
         vec4 colorDS = texture2D(u_Sampler_DS, v_TexCoord);
+        vec3 lightColor = vec3(1.0, 1.0, 1.0);
+        vec3 ambientLight = vec3(0.5, 0.5, 0.5);
+
+        vec3 normal = normalize(v_Normal.xyz);
+        float nDotL = max(dot(u_LightDirection, normal), 0.0);
         
         if (its_on == 1) {           
-            vec4 color1 = texture2D(u_Sampler1, v_LCoord);
-            gl_FragColor = color0 * color1;
+            if (its_death_star == 1) {
+                vec4 color1 = texture2D(u_Sampler1, v_LCoord);
+                gl_FragColor = colorDS * color1 * vec4(ambientLight + lightColor * nDotL, 1.0);
+            } else {
+                vec4 color1 = texture2D(u_Sampler1, v_LCoord);
+                gl_FragColor = color0 * color1 * vec4(ambientLight + lightColor * nDotL, 1.0);
+            }
         } else {
             if (its_death_star == 1) {
-                gl_FragColor = colorDS;
+                gl_FragColor = colorDS * vec4(ambientLight + lightColor * nDotL, 1.0);
             } else {
-                gl_FragColor = color0;
+                gl_FragColor = color0 * vec4(ambientLight + lightColor * nDotL, 1.0);
             }
         }
     }
@@ -108,7 +125,6 @@
             this._set_shaders("vertexShader", "fragmentShader");
             this.set_textures();
         }
-
 
 
         _set_context(id) {
@@ -192,7 +208,7 @@
         }
 
 
-        _set_buffer(points, move, st, l = false) {
+        _set_buffer(points, move, lum, st, l = false) {
             var vert = new Float32Array(points);
             var tex = new Float32Array(st);
             var light = new Float32Array(l);
@@ -267,11 +283,26 @@
 
             this.ctx.uniformMatrix4fv(u_mvMatrix, false, move);
 
+            var normalInvertMatrix = mat4.invert(mat4.create(), move);
+            var normalMatrixInvertTranspose = mat4.transpose(mat4.create(), normalInvertMatrix);
+            var normalUniformMatrix = this.ctx.getUniformLocation(this.ctx.program, "u_NormalMatrix");
+            this.ctx.uniformMatrix4fv(normalUniformMatrix, false, normalMatrixInvertTranspose)
+
+            
             var secondTextureUniform = this.ctx.getUniformLocation(this.ctx.program, "its_on");
             this.ctx.uniform1i(secondTextureUniform, this.lights_turned_on ? 1 : 0);
 
             var starTextureUniform = this.ctx.getUniformLocation(this.ctx.program, "its_death_star");
             this.ctx.uniform1i(starTextureUniform, this.is_star ? 1 : 0);
+
+
+
+            var vertexNormalAttribute = this.ctx.getAttribLocation(this.ctx.program, "a_Normal");
+            this.ctx.enableVertexAttribArray(vertexNormalAttribute);
+            this.ctx.vertexAttribPointer(vertexNormalAttribute, 3, this.ctx.FLOAT, false, 0, 0);
+            var idx = new Uint8Array(lum);
+            this.ctx.bindBuffer(this.ctx.ELEMENT_ARRAY_BUFFER, this.ctx.createBuffer());
+            this.ctx.bufferData(this.ctx.ELEMENT_ARRAY_BUFFER, idx, this.ctx.STATIC_DRAW);
 
 
             // Return number of vertices
@@ -304,6 +335,14 @@
                 this.ctx.uniformMatrix4fv(vMatrixUniform, false, vMatrix);
             }
 
+            var lx = document.getElementById("x").value;
+            var ly = document.getElementById("y").value;
+            var lz = document.getElementById("z").value;
+            var lightDirection = [lx, ly, lz];
+            vec3.normalize(lightDirection, lightDirection);
+            var lightDirectionUniform = this.ctx.getUniformLocation(this.ctx.program, "u_LightDirection");
+            this.ctx.uniform3fv(lightDirectionUniform, lightDirection);
+
 
         }
 
@@ -330,12 +369,25 @@
                 -0.6, 0.2, -0.6
             ];
 
+            const rf_normal = [
+                0, 1.0, 1.0,
+                0, 1.0, 1.0,
+                0, 1.0, 1.0
+            ];
+
+
             // Roof right
             const roofRight = [
                 0.0, 0.8, 0,
                 0.6, 0.2, 0.6,
                 0.6, 0.2, -0.6,
 
+            ];
+
+            const rr_normal = [
+                1.0, 1.0, 0,
+                1.0, 1.0, 0,
+                1.0, 1.0, 0
             ];
 
             // Roof back
@@ -345,11 +397,23 @@
                 -0.6, 0.2, 0.6
             ];
 
+            const rb_normal = [
+                0, -1.0, -1.0,
+                0, -1.0, -1.0,
+                0, -1.0, -1.0
+            ];
+
             // Roof left
             const roofLeft = [
                 0.0, 0.8, 0,
                 -0.6, 0.2, -0.6,
                 -0.6, 0.2, 0.6
+            ];
+
+            const rl_normal = [
+                1.0, 1.0, 0,
+                1.0, 1.0, 0,
+                1.0, 1.0, 0
             ];
 
             // Roof bottom
@@ -361,6 +425,16 @@
                 0.6, 0.2, -0.6,
                 0.6, 0.2, 0.6
             ];
+
+            const rbt_normal = [
+                0, 1, 0,
+                0, 1, 0,
+                0, 1, 0,
+                0, 1, 0,
+                0, 1, 0,
+                0, 1, 0
+            ];
+
 
 
             const glass = [
@@ -402,23 +476,23 @@
 
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(roofFront, rot, glass, trilight)
+                this._set_buffer(roofFront, rot, rf_normal, glass, trilight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(roofRight, rot, tiles, trilight)
+                this._set_buffer(roofRight, rot, rr_normal, tiles, trilight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(roofBack, rot, tiles, trilight)
+                this._set_buffer(roofBack, rot, rb_normal, tiles, trilight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(roofLeft, rot, tiles, trilight)
+                this._set_buffer(roofLeft, rot, rl_normal, tiles, trilight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(roofBottom, rot, bott_tiles, tetralight)
+                this._set_buffer(roofBottom, rot, rbt_normal, bott_tiles, tetralight)
             );
 
         }
@@ -435,6 +509,14 @@
                 0.4, 0.2, -0.1,
                 0.2, 0.2, -0.1
             ];
+            const ff_normal = [
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0,
+                0.0, 0.0, 1.0
+            ]
 
             // Coordenadas para fnd_right (trasera)
             const fnd_right_back = [
@@ -446,6 +528,14 @@
                 0.2, 0.2, 0.1
             ];
 
+            const fb_normal = [
+                0.0, 0.0, -1.0,
+                0.0, 0.0, -1.0,
+                0.0, 0.0, -1.0,
+                0.0, 0.0, -1.0,
+                0.0, 0.0, -1.0,
+                0.0, 0.0, -1.0
+            ]
             // Coordenadas para fnd_right (izquierda)
             const fnd_right_left = [
 
@@ -456,6 +546,16 @@
                 0.2, 0.2, 0.1, // 5  3
                 0.2, 0.2, -0.1, //6  2  
             ];
+
+            const fl_normal = [
+                -1.0, 0.0, 0.0,
+                -1.0, 0.0, 0.0,
+                -1.0, 0.0, 0.0,
+                -1.0, 0.0, 0.0,
+                -1.0, 0.0, 0.0,
+                -1.0, 0.0, 0.0
+            ];
+
 
             // Coordenadas para fnd_right (derecha)
             const fnd_right_right = [
@@ -469,6 +569,15 @@
 
             ];
 
+            const fr_normal = [
+                1.0, 0.0, 0.0,
+                1.0, 0.0, 0.0,
+                1.0, 0.0, 0.0,
+                1.0, 0.0, 0.0,
+                1.0, 0.0, 0.0,
+                1.0, 0.0, 0.0
+            ];
+
             // Coordenadas para fnd_right (inferior)
             const fnd_right_bottom = [
                 0.2, -0.5, 0.1,
@@ -479,6 +588,16 @@
                 0.4, -0.5, -0.1
 
             ];
+
+            const fbt_normal = [
+                0.0, -1.0, 0.0,
+                0.0, -1.0, 0.0,
+                0.0, -1.0, 0.0,
+                0.0, -1.0, 0.0,
+                0.0, -1.0, 0.0,
+                0.0, -1.0, 0.0
+            ]
+
 
             // Coordenadas para fnd_left (frontal)
             const fnd_left_front = [
@@ -563,43 +682,43 @@
 
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(fnd_right_front, rot, wooden_door, tetralight)
+                this._set_buffer(fnd_right_front, rot, ff_normal, wooden_door, tetralight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(fnd_left_front, rot, wooden_door, tetralight)
+                this._set_buffer(fnd_left_front, rot, ff_normal, wooden_door, tetralight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(fnd_right_right, rot, stained_glass, tetralight)
+                this._set_buffer(fnd_right_right, rot, fr_normal, stained_glass, tetralight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(fnd_left_right, rot, stained_glass, tetralight)
+                this._set_buffer(fnd_left_right, rot, fr_normal, stained_glass, tetralight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(fnd_right_back, rot, stained_glass, tetralight)
+                this._set_buffer(fnd_right_back, rot, fb_normal, stained_glass, tetralight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(fnd_left_back, rot, stained_glass, tetralight)
+                this._set_buffer(fnd_left_back, rot, fb_normal, stained_glass, tetralight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(fnd_right_left, rot, stained_glass, tetralight)
+                this._set_buffer(fnd_right_left, rot, fl_normal, stained_glass, tetralight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(fnd_left_left, rot, stained_glass, tetralight)
+                this._set_buffer(fnd_left_left, rot, fl_normal, stained_glass, tetralight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(fnd_right_bottom, rot, stained_glass, tetralight)
+                this._set_buffer(fnd_right_bottom, rot, fbt_normal, stained_glass, tetralight)
             );
             this.ctx.drawArrays(
                 this.draw, 0,
-                this._set_buffer(fnd_left_bottom, rot, stained_glass, tetralight)
+                this._set_buffer(fnd_left_bottom, rot, fbt_normal, stained_glass, tetralight)
             );
 
         }
@@ -648,7 +767,7 @@
 
     class DeathStar extends GiraGiraPeroNuncaToria {
 
-        constructor(canvas_id, x0=0, y0=0, z0=0) {
+        constructor(canvas_id, x0 = 0, y0 = 0, z0 = 0) {
             super(canvas_id);
 
             this.sphere = {
@@ -665,13 +784,13 @@
         }
 
 
-        __triangle_2_coords(n, pts){
+        __triangle_2_coords(n, pts) {
             return [pts[n * 3], pts[n * 3 + 1], pts[n * 3 + 2]];
 
         }
 
 
-        __triangle_2_texture(n, pts){
+        __triangle_2_texture(n, pts) {
             return [pts[n * 2], pts[n * 2 + 1]];
 
         }
@@ -691,19 +810,19 @@
                     var sinPhi = Math.sin(phi);
                     var cosPhi = Math.cos(phi);
 
-                    var x = cosPhi * sinTheta;
+                    var x = sinPhi * sinTheta;
                     var y = cosTheta;
-                    var z = sinPhi * sinTheta;
-                    
+                    var z = cosPhi * sinTheta;
+
                     points.push(this.sphere.radius * x);
-                    points.push(this.sphere.radius * y);
+                    points.push(-this.sphere.radius * y);
                     points.push(this.sphere.radius * z);
 
                     var u = (j / this.sphere.long);
                     var v = (i / this.sphere.long);
 
                     texPoints.push(u);
-                    texPoints.push(v);   
+                    texPoints.push(v);
 
 
                 }
@@ -712,27 +831,27 @@
             var polly = [];
             var texture = [];
 
-            for (var ring = 0; ring < this.sphere.lat-1; ring++) {
+            for (var ring = 0; ring < this.sphere.lat - 1; ring++) {
                 for (var trgl = 0; trgl < 2 * (this.sphere.long); trgl++) {
-                    if (trgl%2 === 0) {
+                    if (trgl % 2 === 0) {
 
-                        polly.push(...this.__triangle_2_coords(trgl/2 + ring * this.sphere.long, points));
-                        polly.push(...this.__triangle_2_coords(trgl/2 + ring * this.sphere.long + 1, points));
-                        polly.push(...this.__triangle_2_coords(trgl/2 + (1 + ring) * this.sphere.long, points));
+                        polly.push(...this.__triangle_2_coords(trgl / 2 + ring * this.sphere.long, points));
+                        polly.push(...this.__triangle_2_coords(trgl / 2 + ring * this.sphere.long + 1, points));
+                        polly.push(...this.__triangle_2_coords(trgl / 2 + (1 + ring) * this.sphere.long, points));
 
-                        texture.push(...this.__triangle_2_texture(trgl/2 + ring * this.sphere.long, texPoints));
-                        texture.push(...this.__triangle_2_texture(trgl/2 + ring * this.sphere.long + 1, texPoints));
-                        texture.push(...this.__triangle_2_texture(trgl/2 + (1 + ring) * this.sphere.long, texPoints));
+                        texture.push(...this.__triangle_2_texture(trgl / 2 + ring * this.sphere.long, texPoints));
+                        texture.push(...this.__triangle_2_texture(trgl / 2 + ring * this.sphere.long + 1, texPoints));
+                        texture.push(...this.__triangle_2_texture(trgl / 2 + (1 + ring) * this.sphere.long, texPoints));
 
-                    } else if (trgl%2 === 1) {
+                    } else if (trgl % 2 === 1) {
 
-                        polly.push(...this.__triangle_2_coords((trgl + 1)/2 + ring * this.sphere.long, points));
-                        polly.push(...this.__triangle_2_coords((trgl - 1)/2 + (1 + ring) * this.sphere.long, points));
-                        polly.push(...this.__triangle_2_coords((trgl + 1)/2 + (1 + ring) * this.sphere.long, points));
+                        polly.push(...this.__triangle_2_coords((trgl + 1) / 2 + ring * this.sphere.long, points));
+                        polly.push(...this.__triangle_2_coords((trgl - 1) / 2 + (1 + ring) * this.sphere.long, points));
+                        polly.push(...this.__triangle_2_coords((trgl + 1) / 2 + (1 + ring) * this.sphere.long, points));
 
-                        texture.push(...this.__triangle_2_texture((trgl + 1)/2 + ring * this.sphere.long, texPoints));
-                        texture.push(...this.__triangle_2_texture((trgl - 1)/2 + (1 + ring) * this.sphere.long, texPoints));
-                        texture.push(...this.__triangle_2_texture((trgl + 1)/2 + (1 + ring) * this.sphere.long, texPoints));
+                        texture.push(...this.__triangle_2_texture((trgl + 1) / 2 + ring * this.sphere.long, texPoints));
+                        texture.push(...this.__triangle_2_texture((trgl - 1) / 2 + (1 + ring) * this.sphere.long, texPoints));
+                        texture.push(...this.__triangle_2_texture((trgl + 1) / 2 + (1 + ring) * this.sphere.long, texPoints));
 
                     }
                 }
@@ -761,7 +880,7 @@
 
             mat4.multiply(move, translation, rot);
 
-            
+
             this._set_sphere(move);
 
         }
@@ -783,7 +902,7 @@
         }
 
 
-        move_star(){
+        move_star() {
             let x = document.getElementById("x")
             let y = document.getElementById("y")
             let z = document.getElementById("z")
@@ -879,18 +998,19 @@
 
             var rotationChecked = document.querySelector('input[name="rotation"]:checked');
             var speed = document.getElementById("speed").value;
-            let prueba_mat = mat4.fromYRotation(mat4.create(), speed ** 2 * v / 1000);
+            let home_rot = mat4.fromYRotation(mat4.create(), speed ** 2 * v / 1000);
+            let star_rot = mat4.fromYRotation(mat4.create(), -1 * speed ** 2 * v / 1000);
 
-            
+
 
             if (home.is_ortho) {
-                home.draw_home(prueba_mat, 2, 0);
-                deathStar.draw_star(prueba_mat,2,0);
+                home.draw_home(home_rot, 2, 0);
+                deathStar.draw_star(star_rot, 2, 0);
 
             } else {
 
-                home.draw_home(prueba_mat, z, y);
-                deathStar.draw_star(prueba_mat,z,y);
+                home.draw_home(home_rot, z, y);
+                deathStar.draw_star(star_rot, z, y);
             }
 
             if (rotationChecked) {

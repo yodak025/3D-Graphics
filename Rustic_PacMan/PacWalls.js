@@ -49,14 +49,14 @@ class PacLayers {
 
                     change_range(0, [this.dim[0]/2, j], [this.dim[0], j], this.layers[l], 2);
 
-                    change_range(0, [this.dim[0] - 7, j], [this.dim[0] - 7, j + 6], this.layers[l], 2);
-                    change_range(0, [this.dim[0] - 7, j - 6], [this.dim[0] - 7, j], this.layers[l], 2);
+                    change_range(0, [this.dim[0] - 5, j], [this.dim[0] - 5, j + 4], this.layers[l], 2);
+                    change_range(0, [this.dim[0] - 5, j - 4], [this.dim[0] - 5, j], this.layers[l], 2);
 
-                    change_range(0, [this.dim[0] - 7, j + 6], [this.dim[0] - 1, j + 6], this.layers[l], 2);
-                    change_range(0, [this.dim[0] - 7, j - 6], [this.dim[0] - 1, j - 6], this.layers[l], 2);
+                    change_range(0, [this.dim[0] - 5, j + 4], [this.dim[0] - 1, j + 4], this.layers[l], 2);
+                    change_range(0, [this.dim[0] - 5, j - 4], [this.dim[0] - 1, j - 4], this.layers[l], 2);
 
-                    change_range(1, [this.dim[0] - 2, j + 1], [this.dim[0] - 2, j + 5], this.layers[l], 2);
-                    change_range(1, [this.dim[0] - 2, j - 5], [this.dim[0] - 2, j - 1], this.layers[l], 2);
+                    change_range(1, [this.dim[0] - 2, j + 1], [this.dim[0] - 2, j + 3], this.layers[l], 2);
+                    change_range(1, [this.dim[0] - 2, j - 3], [this.dim[0] - 2, j - 1], this.layers[l], 2);
 
                     change_range(0, [this.dim[0] - 5, j], [this.dim[0], j], this.layers[l], 2);
 
@@ -64,14 +64,14 @@ class PacLayers {
 
                     change_range(0, [0, j], [this.dim[0]/2, j], this.layers[l], 2);
 
-                    change_range(0, [7, j], [7, j + 6], this.layers[l], 2);
-                    change_range(0, [7, j - 6], [7, j], this.layers[l], 2);
+                    change_range(0, [4, j], [4, j + 4], this.layers[l], 2);
+                    change_range(0, [4, j - 4], [4, j], this.layers[l], 2);
 
-                    change_range(0, [1, j + 6], [7, j + 6], this.layers[l], 2);
-                    change_range(0, [1, j - 6], [7, j - 6], this.layers[l], 2);
+                    change_range(0, [1, j + 4], [4, j + 4], this.layers[l], 2);
+                    change_range(0, [1, j - 4], [4, j - 4], this.layers[l], 2);
 
-                    change_range(1, [1, j + 1], [2, j + 5], this.layers[l], 2);
-                    change_range(1, [1, j - 5], [2, j - 1], this.layers[l], 2);
+                    change_range(1, [1, j + 1], [2, j + 3], this.layers[l], 2);
+                    change_range(1, [1, j - 3], [2, j - 1], this.layers[l], 2);
 
 
                 }else if(l == 0){
@@ -80,14 +80,14 @@ class PacLayers {
 
                     change_range(0, [0, k], [this.dim[0]/2, k], this.layers[l], 2);
 
-                    change_range(0, [7, k], [7, k + 6], this.layers[l], 2);
-                    change_range(0, [7, k - 6], [7, k], this.layers[l], 2);
+                    change_range(0, [5, k], [5, k + 4], this.layers[l], 2);
+                    change_range(0, [5, k - 4], [5, k], this.layers[l], 2);
 
-                    change_range(0, [1, k + 6], [7, k + 6], this.layers[l], 2);
-                    change_range(0, [1, k - 6], [7, k - 6], this.layers[l], 2);
+                    change_range(0, [1, k + 4], [5, k + 4], this.layers[l], 2);
+                    change_range(0, [1, k - 4], [5, k - 4], this.layers[l], 2);
 
-                    change_range(1, [1, k + 1], [2, k + 5], this.layers[l], 2);
-                    change_range(1, [1, k - 5], [2, k - 1], this.layers[l], 2);
+                    change_range(1, [1, k + 1], [2, k + 3], this.layers[l], 2);
+                    change_range(1, [1, k - 3], [2, k - 1], this.layers[l], 2);
 
                 }
             }
@@ -96,6 +96,42 @@ class PacLayers {
         
 
 
+    }
+
+
+    _create_mazepaths() {
+        for (let l = 0; l < this.layers.length; l++) {
+            let phase = Math.floor(Math.random() * 6)
+
+            for (let j = 0; j < this.dim[1]; j++) {
+                let t_type = (j + phase) % 6
+
+                if (t_type == 0){
+
+                    change_range(0, [this.dim[0]/2 - 5, j], [this.dim[0]/2 + 5, j], this.layers[l], 2);
+                    change_range(2, [this.dim[0]/2 - 4, j], [this.dim[0]/2 + 4, j], this.layers[l], 2)
+                    change_range(0, [this.dim[0]/2 - 5, j + 1], [this.dim[0]/2 + 5, j + 1], this.layers[l], 2);
+                    change_range(2, [this.dim[0]/2 - 4, j + 1], [this.dim[0]/2 + 4, j + 1], this.layers[l], 2)
+
+                }else if (t_type == 3){
+
+                    change_range(0, [this.dim[0]/2 - 2, j], [this.dim[0]/2 + 2, j], this.layers[l], 2);
+                    change_range(2, [this.dim[0]/2 - 1, j], [this.dim[0]/2 + 1, j], this.layers[l], 2);
+                    change_range(0, [this.dim[0]/2 - 2, j + 1], [this.dim[0]/2 + 2, j + 1], this.layers[l], 2);
+                    change_range(2, [this.dim[0]/2 - 1, j + 1], [this.dim[0]/2 + 1, j + 1], this.layers[l], 2);
+                    change_range(0, [this.dim[0]/2 - 5, j + 2], [this.dim[0]/2 + 5, j + 2], this.layers[l], 2);
+                    change_range(2, [this.dim[0]/2 - 1, j + 2], [this.dim[0]/2 + 1, j + 2], this.layers[l], 2);
+
+                }else if (t_type == 2){
+                    change_range(0, [this.dim[0]/2 - 5, j], [this.dim[0]/2 + 5, j], this.layers[l], 2);
+                }
+
+
+                //for (let i = 0; i < this.dim[0]; i++) {
+                    
+                //}
+            }
+        }
     }
 
 
@@ -120,6 +156,7 @@ class PacLayers {
         // Genera cambios a nivel de layer.
 
         this._create_layerpaths();
+        this._create_mazepaths();
 
         // Devuelve la matriz grid.
 
@@ -186,8 +223,8 @@ class PacBoxes {
 
 
     _create_middlepaths() {
-        let middle1 = Math.floor(this.dim[0] / 2);
-        let middle2 = Math.floor((this.dim[0] / 2) + 1);
+        let middle1 = Math.floor((this.dim[0] / 2) - 1);
+        let middle2 = Math.floor(this.dim[0] / 2);
 
 
         for (let box = 0; box < 4; box++) {

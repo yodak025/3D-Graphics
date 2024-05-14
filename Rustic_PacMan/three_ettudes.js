@@ -13,8 +13,6 @@ const game = {
         0.01,
         1000
     ),
-
-
 }
 
 
@@ -30,13 +28,17 @@ const maze = {
     borders: [],
 
     set_texture: function () {
-        this.texture = new THREE.MeshBasicMaterial({ color: 0x041E41, side: THREE.DoubleSide });
+        this.texture = new THREE.MeshBasicMaterial({ color: 0xEEEEEE, side: THREE.DoubleSide });
+        this.texture2 = new THREE.MeshBasicMaterial({ color: 0x00EE11, side: THREE.DoubleSide });
+        this.texture3 = new THREE.MeshBasicMaterial({ color: 0xFF2211, side: THREE.DoubleSide });
     },
 
     set_walls: function () {
 
         let wall_geo = new THREE.BoxGeometry(0.9, 0.9, 1);
         let wall = new THREE.Mesh(wall_geo, this.texture);
+        let wall2 = new THREE.Mesh(wall_geo, this.texture2);
+        let wall3 = new THREE.Mesh(wall_geo, this.texture3);
 
         let aux_walls = []
         this.walls.generate_paths();
@@ -48,7 +50,15 @@ const maze = {
         for (let i = 0; i < dim[0]; i++) {
             for (let j = 0; j < dim[1]; j++) {
                 if (pac_map[i][j] == 1) {
-                    aux_walls.push(wall.clone());
+                    aux_walls.push(new THREE.Mesh(wall_geo, this.texture));
+                    aux_walls[idx].position.x = i - 56;
+                    aux_walls[idx].position.y = j - 62;
+                    aux_walls[idx].position.z = 0.5;
+                    game.scene.add(aux_walls[idx]);
+                    idx += 1;
+                    
+                }else if (pac_map[i][j] == 2) {
+                    aux_walls.push(new THREE.Mesh(wall_geo, this.texture2));
                     aux_walls[idx].position.x = i - 56;
                     aux_walls[idx].position.y = j - 62;
                     aux_walls[idx].position.z = 0.5;
@@ -96,7 +106,7 @@ function animate(mesh, renderer, scene, camera) {
     document.onkeydown = function (ev) {
         
             switch (ev.key) {
-                case 'a':if (1 - maze.walls.grid[
+                case 'a':if (0 == maze.walls.grid[
                     (mesh.position.x + maze.walls.dim[0]/2) - 1
                 ][
                     mesh.position.y + maze.walls.dim[1]/2
@@ -107,7 +117,7 @@ function animate(mesh, renderer, scene, camera) {
                     break;
 
                 case 'd':
-                    if (1 - maze.walls.grid[
+                    if (0 == maze.walls.grid[
                         (mesh.position.x + maze.walls.dim[0]/2) + 1
                     ][
                         mesh.position.y + maze.walls.dim[1]/2
@@ -119,7 +129,7 @@ function animate(mesh, renderer, scene, camera) {
                     break;
 
                 case 's':
-                    if (1 - maze.walls.grid[
+                    if (0 == maze.walls.grid[
                         mesh.position.x + maze.walls.dim[0]/2
                     ][
                         (mesh.position.y + maze.walls.dim[1]/2) - 1
@@ -130,7 +140,7 @@ function animate(mesh, renderer, scene, camera) {
                     break;
 
                 case 'w':
-                    if (1 - maze.walls.grid[
+                    if (0 == maze.walls.grid[
                         mesh.position.x + maze.walls.dim[0]/2
                     ][
                         (mesh.position.y + maze.walls.dim[1]/2) + 1
@@ -157,16 +167,22 @@ let grid = new THREE.GridHelper(112, 124);
 grid.rotation.x = Math.PI / 2;
 game.scene.add(grid);
 
+maze.set_texture()
+
 maze.set_borders(56, 62, 0.1)
 maze.set_walls()
 
+game.camera.position.x = -56;
+game.camera.position.y = 46;
 game.camera.position.z = 25;
 
 var geometry = new THREE.BoxGeometry(1, 1, 1);
 var material = new THREE.MeshNormalMaterial();
 var mesh = new THREE.Mesh(geometry, material);
 
-mesh.position.z = 1;
+mesh.position.x = -56;
+mesh.position.y = 46;
+mesh.position.z = 0.5;
 
 game.scene.add(mesh);
 

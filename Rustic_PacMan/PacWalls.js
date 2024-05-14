@@ -99,7 +99,7 @@ class PacLayers {
     }
 
 
-    _create_mazepaths() {
+    mazepaths_phase_01() {
         for (let l = 0; l < this.layers.length; l++) {
             let phase = Math.floor(Math.random() * 6)
 
@@ -126,10 +126,41 @@ class PacLayers {
                     change_range(0, [this.dim[0]/2 - 5, j], [this.dim[0]/2 + 5, j], this.layers[l], 2);
                 }
 
+            }
+        }
+    }
 
-                //for (let i = 0; i < this.dim[0]; i++) {
-                    
-                //}
+    mazepaths_phase_02() {
+        let x0 = this.dim[0]/2;
+        for (let l = 0; l < this.layers.length; l++) {
+            for (let j = 0; j < this.dim[1]-1; j++) {
+
+                let c0 = (this.layers[l][x0 + 1][j] == 0)
+                let c1 = (this.layers[l][x0 + 2][j] == 1)
+                let c2 = (this.layers[l][x0 + 3][j] == 1) && (this.layers[l][x0 + 4][j] == 1)
+
+                let c3 = (this.layers[l][x0 + 1][j + 1] == 0)
+                let c4 = (this.layers[l][x0 + 2][j + 1] == 1)
+                let c5 = (this.layers[l][x0 + 3][j + 1] == 1) && (this.layers[l][x0 + 4][j] == 1)
+
+                let ca = (this.layers[l][x0 - 2][j] == 0)
+                let cb = (this.layers[l][x0 - 3][j] == 1)
+                let cc = (this.layers[l][x0 - 4][j] == 1) && (this.layers[l][x0 - 5][j] == 1)
+
+                let cd = (this.layers[l][x0 - 2][j + 1] == 0)
+                let ce = (this.layers[l][x0 - 3][j + 1] == 1)
+                let cf = (this.layers[l][x0 - 4][j + 1] == 1) && (this.layers[l][x0 - 5][j] == 1)
+
+                let c_pos = c0 && c1 && c2 && c3 && c4 && c5 
+                let c_neg = ca && cb && cc && cd && ce && cf
+
+                if (c_pos) {
+                    change_range(3, [x0 + 2, j], [x0 + 5, j + 1], this.layers[l], 2);
+                }
+
+                if (c_neg) {
+                    change_range(3, [x0 - 5, j], [x0 - 2, j + 1], this.layers[l], 2);
+                }
             }
         }
     }
@@ -156,7 +187,9 @@ class PacLayers {
         // Genera cambios a nivel de layer.
 
         this._create_layerpaths();
-        this._create_mazepaths();
+
+        this.mazepaths_phase_01();
+        this.mazepaths_phase_02();
 
         // Devuelve la matriz grid.
 
@@ -235,11 +268,16 @@ class PacBoxes {
         }
     }
 
+    _create_edgepaths(){
+        change_range(0, [2, 0], [26, 0], this.box1, 2)
+        change_range(0, [2, 30], [26, 30], this.box4, 2)
+    }
 
 
     path() {
         this._create_borderpaths();
         this._create_middlepaths();
+        this._create_edgepaths();
     }
 
 

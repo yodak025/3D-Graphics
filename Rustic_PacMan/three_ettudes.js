@@ -36,9 +36,7 @@ const maze = {
     set_walls: function () {
 
         let wall_geo = new THREE.BoxGeometry(0.9, 0.9, 1);
-        let wall = new THREE.Mesh(wall_geo, this.texture);
-        let wall2 = new THREE.Mesh(wall_geo, this.texture2);
-        let wall3 = new THREE.Mesh(wall_geo, this.texture3);
+
 
         let aux_walls = []
         this.walls.generate_paths();
@@ -59,6 +57,14 @@ const maze = {
                     
                 }else if (pac_map[i][j] == 2) {
                     aux_walls.push(new THREE.Mesh(wall_geo, this.texture2));
+                    aux_walls[idx].position.x = i - 56;
+                    aux_walls[idx].position.y = j - 62;
+                    aux_walls[idx].position.z = 0.5;
+                    game.scene.add(aux_walls[idx]);
+                    idx += 1;
+                }
+                else if (pac_map[i][j] == 3) {
+                    aux_walls.push(new THREE.Mesh(wall_geo, this.texture3));
                     aux_walls[idx].position.x = i - 56;
                     aux_walls[idx].position.y = j - 62;
                     aux_walls[idx].position.z = 0.5;
@@ -169,7 +175,7 @@ game.scene.add(grid);
 
 maze.set_texture()
 
-maze.set_borders(56, 62, 0.1)
+maze.set_borders(57, 63, 0.9)
 maze.set_walls()
 
 game.camera.position.x = -56;

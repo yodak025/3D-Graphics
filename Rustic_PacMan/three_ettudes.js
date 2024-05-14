@@ -21,8 +21,6 @@ const orbit = new OrbitControls(game.camera, game.renderer.domElement);
 
 
 
-
-
 const maze = {
     walls: new PacWalls([28, 31]),
     borders: [],
@@ -36,8 +34,8 @@ const maze = {
     set_walls: function () {
 
         let wall_geo = new THREE.BoxGeometry(0.9, 0.9, 1);
-
-
+        let coin_geo = new THREE.SphereGeometry(0.1, 16, 16);
+        let walls = []
         let aux_walls = []
         this.walls.generate_paths();
         let pac_map = this.walls.grid;
@@ -47,7 +45,14 @@ const maze = {
 
         for (let i = 0; i < dim[0]; i++) {
             for (let j = 0; j < dim[1]; j++) {
-                if (pac_map[i][j] == 1) {
+                if (pac_map[i][j] == 0) {
+                    aux_walls.push(new THREE.Mesh(coin_geo, this.texture));
+                    aux_walls[idx].position.x = i - 56;
+                    aux_walls[idx].position.y = j - 62;
+                    aux_walls[idx].position.z = 0.5;
+                    game.scene.add(aux_walls[idx]);
+                    idx += 1;
+                }else if (pac_map[i][j] == 1) {
                     aux_walls.push(new THREE.Mesh(wall_geo, this.texture));
                     aux_walls[idx].position.x = i - 56;
                     aux_walls[idx].position.y = j - 62;
@@ -73,8 +78,11 @@ const maze = {
                 }
 
             }
-            this.walls[i] = aux_walls;
+            walls.push(aux_walls);
+            aux_walls = [];
+            idx = 0;
         }
+        return walls
     },
 
     set_borders: function (x, y, len) {
@@ -103,6 +111,7 @@ const maze = {
 }
 
 
+
 function animate(mesh, renderer, scene, camera) {
     mesh.rotation.x += 0.01;
     mesh.rotation.y += 0.02;
@@ -119,6 +128,7 @@ function animate(mesh, renderer, scene, camera) {
                 ] ) {
                     mesh.position.x -= step;
                     camera.position.x -= step;
+                    scene.remove(grid_elements[mesh.position.x + 56][mesh.position.y + 62])
                     }
                     break;
 
@@ -131,6 +141,7 @@ function animate(mesh, renderer, scene, camera) {
 
                     mesh.position.x += step;
                     camera.position.x += step;
+                    scene.remove(grid_elements[mesh.position.x + 56][mesh.position.y + 62])
                     }
                     break;
 
@@ -142,6 +153,7 @@ function animate(mesh, renderer, scene, camera) {
                     ] ) {
                     mesh.position.y -= step;
                     camera.position.y -= step;
+                    scene.remove(grid_elements[mesh.position.x + 56][mesh.position.y + 62])
                     }
                     break;
 
@@ -153,6 +165,7 @@ function animate(mesh, renderer, scene, camera) {
                     ] ) {
                     mesh.position.y += step;
                     camera.position.y += step;
+                    scene.remove(grid_elements[mesh.position.x + 56][mesh.position.y + 62])
                     }
                     break;
             }
@@ -169,36 +182,45 @@ function animate(mesh, renderer, scene, camera) {
 let axes_helper = new THREE.AxesHelper(200);
 game.scene.add(axes_helper);
 
+
 let grid = new THREE.GridHelper(112, 124);
 grid.rotation.x = Math.PI / 2;
 game.scene.add(grid);
 
+
 maze.set_texture()
 
 maze.set_borders(57, 63, 0.9)
-maze.set_walls()
+let grid_elements = maze.set_walls()
+
 
 game.camera.position.x = -56;
 game.camera.position.y = 46;
-game.camera.position.z = 25;
+game.camera.position.z = 15;
+
 
 var geometry = new THREE.BoxGeometry(1, 1, 1);
 var material = new THREE.MeshNormalMaterial();
 var mesh = new THREE.Mesh(geometry, material);
 
+
 mesh.position.x = -56;
 mesh.position.y = 46;
 mesh.position.z = 0.5;
 
+
 game.scene.add(mesh);
+
 
 const floor = new THREE.PlaneGeometry(112, 124);
 const floor_blue = new THREE.MeshBasicMaterial({ color: 0x051F42, side: THREE.DoubleSide });
 const plane = new THREE.Mesh(floor, floor_blue);
+
 game.scene.add(plane);
+
 
 game.renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(game.renderer.domElement);
 
-animate(mesh, game.renderer, game.scene, game.camera);
+animate(mesh, game.renderer, game.scene, game.camera, grid_elements);
 

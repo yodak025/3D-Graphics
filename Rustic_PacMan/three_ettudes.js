@@ -61,7 +61,7 @@ const maze = {
                     idx += 1;
                     
                 }else if (pac_map[i][j] == 2) {
-                    aux_walls.push(new THREE.Mesh(wall_geo, this.texture2));
+                    aux_walls.push(new THREE.Mesh(wall_geo, this.texture));
                     aux_walls[idx].position.x = i - 56;
                     aux_walls[idx].position.y = j - 62;
                     aux_walls[idx].position.z = 0.5;
@@ -69,7 +69,7 @@ const maze = {
                     idx += 1;
                 }
                 else if (pac_map[i][j] == 3) {
-                    aux_walls.push(new THREE.Mesh(wall_geo, this.texture3));
+                    aux_walls.push(new THREE.Mesh(wall_geo, this.texture));
                     aux_walls[idx].position.x = i - 56;
                     aux_walls[idx].position.y = j - 62;
                     aux_walls[idx].position.z = 0.5;

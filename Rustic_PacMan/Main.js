@@ -49,7 +49,7 @@ function main(){
                 alert("You win!");
                 window.location.reload();
             }
-            if (game.pacman.lives){
+            if (game.pacman.lives == 0) {
                 alert("Game Over!");
                 window.location.reload();
             }

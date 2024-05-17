@@ -200,6 +200,7 @@ class PacLayers {
         }
     }
 
+
     mazepaths_phase_02_5() {
         // 20 = 2 * 10
         // 20 = 3 * 2 + 6 * 2 => 22322322, 32222223, 23222232
@@ -396,6 +397,7 @@ const change_range = (n, min, max, array, dim) => {
 }
 
 
+
 const T2_01 = (t, array) => {
     let t1 = t + 1;
 
@@ -427,6 +429,7 @@ const T2_01 = (t, array) => {
 }
 
 
+
 const T2_03 = (t, array) => {
     let t1 = t + 1;
 
@@ -456,6 +459,7 @@ const T2_03 = (t, array) => {
     change_range(0, [1, 6 * t], [4, 6 * t + 4], array, 2)
     change_range(3, [0, 6 * t + 4], [3, 6 * t1 + 5], array, 2)
 }
+
 
 
 const T2_02 = (t, array) => {

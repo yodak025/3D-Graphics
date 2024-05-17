@@ -1,13 +1,30 @@
-<!DOCTYPE html> 
-<html> 
-    <head>
-        <title>Three.js: Hello World with canvas</title>
-        <link rel="stylesheet" href="style.css">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.js"></script>
-        <script src="PacWalls.js" type="module"></script>
-        <script src="three_ettudes.js" type="module" defer></script>
-        
-    </head>
-    <body>
-    </body>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Three.js: Pacman Game</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="Main.js" type="module" defer></script>
+</head>
+<body>
+    <div id="menu-container">
+        <h1>Pacman 3D</h1>
+        <ul id="menu-options">
+            <li><a href="#" id="start-game">Iniciar Juego</a></li>
+            <li><a href="#" id="high-scores">Puntuaciones Altas</a></li>
+            <li><a href="#" id="settings">Configuración</a></li>
+            <li><a href="#" id="about">Acerca de</a></li>
+        </ul>
+    </div>
+    <div id="game-container"></div>
+    <div id="game-ui">
+        <div id="lives-container">
+            <img src="heart.jpg" alt="Vida" class="life-icon">
+            <span id="lives">3</span>
+        </div>
+        <div id="score-container">
+            <img src="coin.jpg" alt="Puntuación" class="score-icon">
+            <span id="score">0</span>
+        </div>
+    </div>
+</body>
 </html>

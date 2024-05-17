@@ -24,9 +24,9 @@ export class PacBoard {
             this.board.push(aux);
         }
 
-
- 
     }
+
+
     remove_coin(pos){
         if(this.board[pos[0]][pos[1]] == 1){
             this.board[pos[0]][pos[1]] = -1;
@@ -36,9 +36,5 @@ export class PacBoard {
         }
         return false
     }
-
-
-
-
-    
+ 
 }

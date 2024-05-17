@@ -1,7 +1,27 @@
+<!--
+Autor: Diego Sota Rebollo
+
+Partes implementadas:
+
+- Funcionalidad básica
+- Funcionalidad avanzada:
+    - Puntuación y velocidad.
+    - Inteligencia primitiva de fantasmas.
+- Mejoras:
+    - Generación de mapas aleatorios.
+    - Mapas 16x16 estilo mazmorra con 4 capas.
+        (4 filas principales separadas con un solo acceso)
+    - Victoria cuando superas el nivel.
+    - Modelos 3D importados para PacMan y fantasmas.
+    - Orbe cada 10000 puntos. Pulsa espacio para avanzar 5 casillas gastando un orbe.
+    - Generación aleatoria de posición de los fantasmas
+
+-->
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Three.js: Pacman Game</title>
+    <title>Pacman Game</title>
     <link rel="stylesheet" href="style.css">
     <script src="Main.js" type="module" defer></script>
 </head>
@@ -19,11 +39,15 @@
     <div id="game-ui">
         <div id="lives-container">
             <img src="heart.jpg" alt="Vida" class="life-icon">
-            <span id="lives">3</span>
+            <span id="lives">0</span>
         </div>
         <div id="score-container">
             <img src="coin.jpg" alt="Puntuación" class="score-icon">
             <span id="score">0</span>
+        </div>
+        <div id="score-container">
+            <img src="orb.jpg" alt="Orbes" class="orb-icon">
+            <span id="orbs">0</span>
         </div>
     </div>
 </body>

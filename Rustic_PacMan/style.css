@@ -1,5 +1,5 @@
 canvas {
-    z-index: 10; /* Un valor más alto que otros elementos */
+    z-index: 10; 
     top: 0;
     left: 0;
 }
@@ -7,7 +7,7 @@ canvas {
 body, html {
     height: 100%;
     margin: 0;
-    font-family: 'Press Start 2P', cursive; /* Fuente estilo arcade */
+    font-family: 'Press Start 2P', cursive; 
     background: radial-gradient(circle, rgba(3,37,65,1) 0%, rgba(1,50,67,1) 100%);
     color: #fff;
     overflow: hidden;
@@ -56,7 +56,7 @@ h1 {
 
 #game-ui {
     position: absolute;
-    z-index: 20; /* Un valor más alto que el canvas */
+    z-index: 20; 
     top: 10px;
     left: 10px;
     color: #fff;
@@ -66,7 +66,7 @@ h1 {
     padding: 0 5%;
 }
 
-.life-icon, .score-icon {
+.life-icon, .score-icon, .orb-icon {
     height: 30px;
     margin-right: 10px;
 }

@@ -43,6 +43,8 @@ class PacLayers {
 
         let path_position = Array(4).fill().map(random_int_4);
 
+        this.end = path_position[3];
+
         for (let l = 0; l < this.layers.length; l++) {
             change_range(1, [0, 0], [0, this.dim[1]], this.layers[l], 2);
             change_range(1, [this.dim[0] - 1, 0], [this.dim[0] - 1, this.dim[1]], this.layers[l], 2);
@@ -161,7 +163,7 @@ class PacLayers {
                 let c_neg = ca && cb && cc && cd && ce && cf
 
                 if (c_pos || c_neg) {
-                    
+
                     let xlen = Math.floor(Math.random() * 9);
                     let xpos = Math.floor(xlen / 3) * 3 + 1;
                     let ylen = Math.floor(Math.random() * 9);
@@ -202,33 +204,90 @@ class PacLayers {
 
 
     mazepaths_phase_02_5() {
-        // 20 = 2 * 10
-        // 20 = 3 * 2 + 6 * 2 => 22322322, 32222223, 23222232
-        // 20 = 3 * 4 + 3 * 2 => 323323, 332233, 233332
+        // 20 = 2 * 10 <=
+        // 20 = 3 * 2 + 7 * 2 => 223222322, 322222223, 232222232
+        // 20 = 3 * 4 + 4 * 2 => 3232323, 3322233, 2332332
         // 20 = 3 * 6 + 2 => 3332333
 
         let x0 = this.dim[0] / 2;
 
         let distribution = Math.floor(Math.random() * 4);
-        
 
-        
+
+
         for (let l = 0; l < this.layers.length; l++) {
             for (let j = 0; j < 10; j++) {
                 let type1 = Math.floor(Math.random() * 2);
-                switch (type1){
+                switch (type1) {
                     case 0:
-                        T2_01(2*j, this.layers[l]);
+                        T2_01(2 * j, this.layers[l]);
                         break;
                     case 1:
-                        T2_02(2*j, this.layers[l]);
+                        T2_02(2 * j, this.layers[l]);
                         break;
                 }
 
             }
-        }        
+        }
     }
 
+
+    mazepaths_phase_03() {
+        // 20 = 2 * 10
+        // 20 = 3 * 2 + 7 * 2 => 223222322, 322222223, 23222232 <=
+        // 20 = 3 * 4 + 4 * 2 => 3232323, 3322233, 2332332
+        // 20 = 3 * 6 + 2 => 3332333
+
+        let x0 = this.dim[0] / 2;
+
+        let distribution = Math.floor(Math.random() * 4);
+
+
+
+        for (let l = 0; l < this.layers.length; l++) {
+            for (let j = 0; j < 10; j++) {
+                if (j > 1 && j < 8) {
+
+                    let type1 = Math.floor(Math.random() * 2);
+                    switch (type1) {
+                        case 0:
+                            T2_01(2 * j + 1, this.layers[l]);
+                            break;
+                        case 1:
+                            T2_02(2 * j + 1, this.layers[l]);
+                            break;
+                    }
+
+                    if(j == 6){
+                        T2_03(2 * j + 1, this.layers[l]);
+                        j = 7;
+                    }
+
+                } else {
+
+                    let type1 = Math.floor(Math.random() * 2);
+                    switch (type1) {
+                        case 0:
+                            T2_01(2 * j, this.layers[l]);
+                            break;
+                        case 1:
+                            T2_02(2 * j, this.layers[l]);
+                            break;
+                    }
+
+                    if(j == 1){
+                        j = 2;
+                        T2_03(2 * j, this.layers[l]);
+                    }
+
+                }
+
+
+            }
+        }
+    }
+
+    
     path() {
         // Genera los cambios a nivel de box.
 
@@ -249,7 +308,7 @@ class PacLayers {
         // Genera cambios a nivel de layer. 
 
         this.mazepaths_phase_01();
-        this.mazepaths_phase_02_5();
+        this.mazepaths_phase_03();
 
         this._create_layerpaths();
 
@@ -418,7 +477,7 @@ const T2_01 = (t, array) => {
     change_range(0, [2, 6 * t + 3], [7, 6 * t1 + 6], array, 2)
     change_range(3, [4, 6 * t + 1], [6, 6 * t1 + 2], array, 2)
 
-    
+
     change_range(3, [22, 6 * t1 + 4], [28, 6 * t1 + 5], array, 2)
     change_range(0, [25, 6 * t + 3], [25, 6 * t1 + 6], array, 2)
     change_range(3, [25, 6 * t + 4], [27, 6 * t1 + 5], array, 2)
@@ -431,33 +490,73 @@ const T2_01 = (t, array) => {
 
 
 const T2_03 = (t, array) => {
+    //centro i = 13   centro d = 14
+
     let t1 = t + 1;
+    let t2 = t + 2;
 
-    change_range(3, [16, 6 * t1 + 1], [19, 6 * t1 + 2], array, 2)
-    change_range(0, [19, 6 * t1 - 3], [22, 6 * t1 + 6], array, 2)
-    change_range(3, [19, 6 * t1 - 2], [21, 6 * t1 + 5], array, 2)
+    change_range(0, [16, 6 * t], [27, 6 * t + 3], array, 2)
+    change_range(0, [0, 6 * t], [12, 6 * t + 3], array, 2)
 
-    change_range(3, [9, 6 * t1 + 1], [12, 6 * t1 + 2], array, 2)
-    change_range(0, [6, 6 * t1 - 3], [9, 6 * t1 + 6], array, 2)
-    change_range(3, [7, 6 * t1 - 2], [9, 6 * t1 + 5], array, 2)
+    change_range(3, [16, 6 * t + 1], [18, 6 * t + 2], array, 2)
+    change_range(3, [10, 6 * t + 1], [12, 6 * t + 2], array, 2)
+
+    change_range(3, [19, 6 * t], [26, 6 * t + 1], array, 2)
+    change_range(3, [2, 6 * t], [9, 6 * t + 1], array, 2)
 
 
-    change_range(3, [16, 6 * t + 1], [26, 6 * t + 2], array, 2)
-    change_range(0, [22, 6 * t + 3], [25, 6 * t1 + 6], array, 2)
-    change_range(3, [22, 6 * t + 1], [24, 6 * t1 + 2], array, 2)
+    change_range(0, [18, 6 * t + 3], [27, 6 * t + 6], array, 2)
+    change_range(0, [0, 6 * t + 3], [10, 6 * t + 6], array, 2)
 
-    change_range(3, [4, 6 * t + 1], [12, 6 * t + 2], array, 2)
-    change_range(0, [3, 6 * t], [6, 6 * t1 + 3], array, 2)
-    change_range(3, [4, 6 * t + 1], [6, 6 * t1 + 2], array, 2)
+    change_range(3, [19, 6 * t + 3], [26, 6 * t + 4], array, 2)
+    change_range(3, [2, 6 * t + 3], [9, 6 * t + 4], array, 2)
 
-    
-    change_range(3, [22, 6 * t1 + 4], [28, 6 * t1 + 5], array, 2)
-    change_range(0, [25, 6 * t + 3], [25, 6 * t1 + 6], array, 2)
-    change_range(3, [25, 6 * t + 4], [27, 6 * t1 + 5], array, 2)
 
-    change_range(3, [0, 6 * t1 + 4], [6, 6 * t1 + 5], array, 2)
-    change_range(0, [1, 6 * t], [4, 6 * t + 4], array, 2)
-    change_range(3, [0, 6 * t + 4], [3, 6 * t1 + 5], array, 2)
+
+    change_range(0, [16, 6 * t1], [27, 6 * t1 + 3], array, 2)
+    change_range(0, [0, 6 * t1], [12, 6 * t1 + 3], array, 2)
+
+    change_range(3, [16, 6 * t1], [22, 6 * t1 + 1], array, 2)
+    change_range(3, [6, 6 * t1], [12, 6 * t1 + 1], array, 2)
+
+    change_range(3, [16, 6 * t1 + 1], [18, 6 * t1 + 2], array, 2)
+    change_range(3, [10, 6 * t1 + 1], [12, 6 * t1 + 2], array, 2)
+
+    change_range(3, [23, 6 * t + 3], [26, 6 * t1 + 1], array, 2)
+    change_range(3, [2, 6 * t + 3], [5, 6 * t1 + 1], array, 2)
+
+
+    change_range(0, [18, 6 * t1 + 3], [27, 6 * t1 + 6], array, 2)
+    change_range(0, [0, 6 * t1 + 3], [10, 6 * t1 + 6], array, 2)
+
+
+
+    change_range(0, [16, 6 * t2], [27, 6 * t2 + 3], array, 2)
+    change_range(0, [0, 6 * t2], [12, 6 * t2 + 3], array, 2)
+
+    change_range(3, [16, 6 * t2 + 1], [21, 6 * t2 + 2], array, 2)
+    change_range(3, [7, 6 * t2 + 1], [12, 6 * t2 + 2], array, 2)
+
+    change_range(3, [19, 6 * t1 + 3], [21, 6 * t2 + 2], array, 2)
+    change_range(3, [7, 6 * t1 + 3], [9, 6 * t2 + 2], array, 2)
+
+
+
+    change_range(0, [18, 6 * t2 + 3], [27, 6 * t2 + 6], array, 2)
+    change_range(0, [0, 6 * t2 + 3], [10, 6 * t2 + 6], array, 2)
+
+    change_range(3, [19, 6 * t2 + 4], [24, 6 * t2 + 5], array, 2)
+    change_range(3, [4, 6 * t2 + 4], [9, 6 * t2 + 5], array, 2)
+
+    change_range(3, [22, 6 * t1 + 3], [24, 6 * t2 + 6], array, 2)
+    change_range(3, [4, 6 * t1 + 3], [6, 6 * t2 + 6], array, 2)
+
+    change_range(3, [25, 6 * t1 + 3], [27, 6 * t2 + 6], array, 2)
+    change_range(3, [1, 6 * t1 + 3], [3, 6 * t2 + 6], array, 2)
+
+
+
+
 }
 
 
@@ -482,12 +581,12 @@ const T2_02 = (t, array) => {
     change_range(0, [3, 6 * t], [6, 6 * t1 + 3], array, 2)
     change_range(3, [4, 6 * t + 1], [6, 6 * t1 + 2], array, 2)
 
-    
+
     change_range(3, [22, 6 * t1 + 1], [28, 6 * t1 + 2], array, 2)
     change_range(0, [25, 6 * t], [25, 6 * t1 + 3], array, 2)
     change_range(3, [25, 6 * t + 1], [27, 6 * t1 + 2], array, 2)
 
-    
+
     change_range(0, [0, 6 * t], [4, 6 * t1 + 3], array, 2)
     change_range(3, [0, 6 * t1 + 1], [5, 6 * t1 + 2], array, 2)
     change_range(3, [0, 6 * t + 1], [3, 6 * t1 + 2], array, 2)

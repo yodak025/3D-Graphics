@@ -7,25 +7,23 @@ const game = new Game();
 
 
 
-
-
 function main(game){
 
     game.set_texture()
-    //game.set_borders(57, 63, 0.9)
+    /game.set_borders(57, 63, 0.9)
     game.set_walls();
     
     
     
-    const helper = {
-        orbit: new OrbitControls(game.camera, game.renderer.domElement),
-        axes: new THREE.AxesHelper(200),
-        grid: new THREE.GridHelper(112, 124)
-    }
+    //const helper = {
+    //    orbit: new OrbitControls(game.camera, game.renderer.domElement),
+    //    axes: new THREE.AxesHelper(200),
+    //    grid: new THREE.GridHelper(112, 124)
+    //}
     
-    game.scene.add(helper.axes);
-    helper.grid.rotation.x = Math.PI / 2;
-    game.scene.add(helper.grid);
+    //game.scene.add(helper.axes);
+    //helper.grid.rotation.x = Math.PI / 2;
+    //game.scene.add(helper.grid);
     
     
     
@@ -39,14 +37,14 @@ function main(game){
    
         document.onkeydown = function (ev) {
                 game.pacman_controls(ev.key);
-                console.log(game.board.score)
             }
     
             game.each_frame();
             document.getElementById("score").innerHTML = game.board.score;
             document.getElementById("lives").innerHTML = game.pacman.lives;
+            document.getElementById("orbs").innerHTML = game.pacman.orbs;
 
-            if (game.board.score == 100000) {
+            if (game.pacman.position[0] == 111) {
                 alert("You win!");
                 game.state.game_over = true
             }
@@ -69,6 +67,8 @@ function main(game){
     animate();
 }
 
+
+
 document.getElementById('start-game').addEventListener('click', function() {
     document.getElementById('menu-container').style.display = 'none';
     document.getElementById('game-container').style.display = 'block';
@@ -78,6 +78,7 @@ document.getElementById('start-game').addEventListener('click', function() {
 
 
 let loader = new GLTFLoader();
+
 
 loader.load('Pacman_Blue_Ghost.glb', (gltf) => {
     const scene = gltf.scene;
@@ -89,6 +90,7 @@ loader.load('Pacman_Blue_Ghost.glb', (gltf) => {
       
     });
   });
+
 
   loader.load('Pacman_Orange_Ghost.glb', (gltf) => {
     const scene = gltf.scene;

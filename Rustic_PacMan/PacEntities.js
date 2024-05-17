@@ -9,10 +9,14 @@ export class PacMan {
 
         this.meshes = [];
 
+        this.step = 1;
+
+        this.orbs = 0;
+
 
         this.position = [0, 108];
 
-        this.lives = 5;
+        this.lives = 3;
 
         this.iframes = 0;
 
@@ -46,6 +50,8 @@ export class PacMan {
 export class PacGhost {
     constructor(grid) {
 
+        this.is_dead = false;
+
         this.meshes = [];
 
         this.grid = grid;
@@ -53,8 +59,10 @@ export class PacGhost {
 
         this.position = [16, 108]
         this.random_spawn();
+        this.init_position = this.position.slice();
         this.delay = 0
     }
+
 
     add_mesh(model) {
         let p = this.convert2meshd()
@@ -68,9 +76,11 @@ export class PacGhost {
         this.meshes.push(model);
     }
 
+
     convert2meshd() {
         return [this.position[0] - 56, this.position[1] - 62]
     }
+
 
     update_movement() {
         this.meshes.forEach((m) => {
@@ -79,10 +89,11 @@ export class PacGhost {
         });
     }
 
+
     random_spawn() {
         let spawn_x = Math.floor(Math.random() * this.grid[0].length);
         let spawn_y = Math.floor(Math.random() * this.grid.length);
-        if (this.grid[spawn_y][spawn_x] == 0) {
+        if (this.grid[spawn_y][spawn_x] != 0) {
             this.position[0] = spawn_x;
             this.position[1] = spawn_y;
             this.position = [spawn_x, spawn_y]
@@ -92,19 +103,18 @@ export class PacGhost {
     }
 
 
-
     find_pacman(pacman) {
         if (this.delay == 0) {
-            if (this.position[0] < pacman.position[0] && this.grid[this.position[0] + 1][this.position[1]] == 0) {
+            if (this.position[0] < pacman.position[0] && this.grid[this.position[0] + 1][this.position[1]] != 0) {
                 this.position[0] += 1;
 
-            } else if (this.position[0] > pacman.position[0] && this.grid[this.position[0] - 1][this.position[1]] == 0) {
+            } else if (this.position[0] > pacman.position[0] && this.grid[this.position[0] - 1][this.position[1]] != 0) {
                 this.position[0] -= 1;
 
-            } if (this.position[1] < pacman.position[1] && this.grid[this.position[0]][this.position[1] + 1] == 0) {
+            } if (this.position[1] < pacman.position[1] && this.grid[this.position[0]][this.position[1] + 1] != 0) {
                 this.position[1] += 1;
 
-            } else if (this.position[1] > pacman.position[1] && this.grid[this.position[0]][this.position[1] - 1] == 0) {
+            } else if (this.position[1] > pacman.position[1] && this.grid[this.position[0]][this.position[1] - 1] != 0) {
                 this.position[1] -= 1;
             }
             this.update_movement();

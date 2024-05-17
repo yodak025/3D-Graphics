@@ -31,15 +31,18 @@ export class Game {
         this.borders = [];
         this.meshes = undefined;
         this.set_walls();
+        this.board = new PacBoard(this.walls.grid, this.meshes, this.walls.dim, this.scene);
 
         this.pacman = new PacMan()
 
-        this.blue_ghost = new PacGhost(this.walls.grid);
-        this.orange_ghost = new PacGhost(this.walls.grid);
-        this.pink_ghost = new PacGhost(this.walls.grid);
-        this.red_ghost = new PacGhost(this.walls.grid);
+        this.blue_ghost = new PacGhost(this.board.board);
+        this.orange_ghost = new PacGhost(this.board.board);
+        this.pink_ghost = new PacGhost(this.board.board);
+        this.red_ghost = new PacGhost(this.board.board);
 
-        this.board = new PacBoard(this.walls.grid, this.meshes, this.walls.dim, this.scene);
+        this.ghosts = [this.blue_ghost, this.orange_ghost, this.pink_ghost, this.red_ghost];
+
+        
     }
 
 
@@ -72,37 +75,67 @@ export class Game {
 
 
     pacman_controls(key) {
-        let step = 1;
+        let lastpos = this.pacman.position;
 
         switch (key) {
-            case 'a': if (0 != this.board.board[this.pacman.position[0] - 1][this.pacman.position[1]]) {
-                this.pacman.position[0] -= step;
-                this.camera.position.x -= step;
-            }
+            case ' ':
+                if (this.pacman.orbs > 0) {
+                    this.pacman.step = 5
+                    this.pacman.orbs -= 1
+                }
+
                 break;
-
-            case 'd':
-                if (0 != this.board.board[this.pacman.position[0] + 1][this.pacman.position[1]]) {
-
-                    this.pacman.position[0] += step;
-                    this.camera.position.x += step;
-
+            case 'ArrowLeft':
+                if (0 != this.board.board[this.pacman.position[0] - this.pacman.step][this.pacman.position[1]]) {
+                    this.pacman.position[0] -= this.pacman.step;
+                    this.camera.position.x -= this.pacman.step;
+                    this.pacman.step = 1
+                    
+                    
+                }
+                else if (this.pacman.step > 1) {
+                    this.pacman.step -= 1;
+                    this.pacman_controls(key);
                 }
                 break;
 
-            case 's':
-                if (0 != this.board.board[this.pacman.position[0]][this.pacman.position[1] - 1]) {
-                    this.pacman.position[1] -= step;
-                    this.camera.position.y -= step;
+            case 'ArrowRight':
+                if (0 != this.board.board[this.pacman.position[0] + this.pacman.step][this.pacman.position[1]]) {
+
+                    this.pacman.position[0] += this.pacman.step;
+                    this.camera.position.x += this.pacman.step;
+                    this.pacman.step = 1
+
+                }
+                else if (this.pacman.step > 1) {
+                    this.pacman.step -= 1;
+                    this.pacman_controls(key);
                 }
                 break;
 
-            case 'w':
-                if (0 != this.board.board[this.pacman.position[0]][this.pacman.position[1] + 1]) {
-                    this.pacman.position[1] += step;
-                    this.camera.position.y += step;
+            case 'ArrowDown':
+                if (0 != this.board.board[this.pacman.position[0]][this.pacman.position[1] - this.pacman.step]) {
+                    this.pacman.position[1] -= this.pacman.step;
+                    this.camera.position.y -= this.pacman.step;
+                    this.pacman.step = 1
 
+                }
+                else if (this.pacman.step > 1) {
+                    this.pacman.step -= 1;
+                    this.pacman_controls(key);
+                }
+                break;
 
+            case 'ArrowUp':
+                if (0 != this.board.board[this.pacman.position[0]][this.pacman.position[1] + this.pacman.step]) {
+                    this.pacman.position[1] += this.pacman.step;
+                    this.camera.position.y += this.pacman.step;
+                    this.pacman.step = 1
+
+                }
+                else if (this.pacman.step > 1) {
+                    this.pacman.step -= 1;
+                    this.pacman_controls(key);
                 }
                 break;
         }
@@ -116,46 +149,40 @@ export class Game {
         this.pink_ghost.find_pacman(this.pacman)
         this.red_ghost.find_pacman(this.pacman)
 
+        for (const ghost of this.ghosts) {
 
-        if (this.blue_ghost.position[0] == this.pacman.position[0]
-            && this.blue_ghost.position[1] == this.pacman.position[1]
-        ) {
-            this.pacman.iframes = 10;
-            this.pacman.lives -= 1;
+            let c1 = (((this.pacman.position[0] > ghost.position[0]) && (lastpos[0] < ghost.position[0]))
+                && (this.pacman.position[1] == ghost.position[1]));
+            let c2 = (((this.pacman.position[0] < ghost.position[0]) && (lastpos[0] > ghost.position[0]))
+                && (this.pacman.position[1] == ghost.position[1]));
+            let c3 = (((this.pacman.position[1] > ghost.position[1]) && (lastpos[1] < ghost.position[1]))
+                && (this.pacman.position[0] == ghost.position[0]));
+            let c4 = (((this.pacman.position[1] < ghost.position[1]) && (lastpos[1] > ghost.position[1]))
+                && (this.pacman.position[0] == ghost.position[0]));
 
-            this.blue_ghost.delay = 10;
+            if (c1 || c2 || c3 || c4) {
+                ghost.position = ghost.init_position.slice();
+                ghost.update_movement();
+            }
 
-        }        
+            if (ghost.position[0] == this.pacman.position[0]
+                && ghost.position[1] == this.pacman.position[1]
+                && ghost.is_dead == false
+            ) {
+                this.pacman.iframes = 10;
+                this.pacman.lives -= 1;
 
-        if (this.orange_ghost.position[0] == this.pacman.position[0]
-            && this.orange_ghost.position[1] == this.pacman.position[1]
-        ) {
-            this.pacman.iframes = 10;
-            this.pacman.lives -= 1;
+                ghost.delay = 10;
 
-            this.orange_ghost.delay = 10;
+            }
 
-        }
-        
-        if (this.pink_ghost.position[0] == this.pacman.position[0]
-            && this.pink_ghost.position[1] == this.pacman.position[1]
-        ) {
-            this.pacman.iframes = 10;
-            this.pacman.lives -= 1;
 
-            this.pink_ghost.delay = 10;
-
-        }
-        
-        if (this.red_ghost.position[0] == this.pacman.position[0]
-            && this.red_ghost.position[1] == this.pacman.position[1]
-        ) {
-            this.pacman.iframes = 10;
-            this.pacman.lives -= 1;
-
-            this.red_ghost.delay = 10;
 
         }
+
+
+
+
 
 
 
@@ -287,11 +314,14 @@ export class Game {
 
         this.set_board()
 
+        if (this.board.score > 10000) {
+            this.pacman.orbs += 1;
+            this.board.score -= 10000;
+        }
+
         this.renderer.render(this.scene, this.camera);
 
 
     }
-
-
 
 }

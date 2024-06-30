@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+   <title>Three.js: Collision detection</title>
+   <meta name="author" content="Jose Miguel Guerrero Hernandez">
+   <meta name="email" content="josemiguel.guerrero@urjc.es">
+   <!-- Copyright (c) 2023 Jose Miguel Guerrero Hernandez <josemiguel.guerrero@urjc.es> -->
+   <!-- License: Creative Commons Attribution-ShareAlike 4.0 International-->
+   <link rel="stylesheet" type="text/css" href="styles.css">
+
+</head>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.148.0/three.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js/addons/loaders/FontLoader.js'"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js/addons/geometries/TextGeometry.js"></script>
+
+<body onload="init()">
+   <div id="display">
+      <p id="score">Score</p>
+      <p id="lives">Lives</p>
+   </div>
+
+</body>
+
+<script>
+
+   // Global variables
+   var stepX = 10;
+   var stepY = 10;
+
+   lastFrameTime = 0;
+
+   var isMovement = false;
+   var isPotentiator = false;
+
+   var lives = 3;
+   var score = 0;
+
+
+   //Global objects and constants
+   const pacmanAttributes = {
+      direction: "stop",
+      isColliding: false
+   };
+
+   const ghostsAttributes = [
+      // Each object is indexed by the ghost number
+      { direction: "stop", isColliding: false }, // Ghost 0
+      { direction: "stop", isColliding: false }, // Ghost 1
+      { direction: "stop", isColliding: false }  // Ghost 2
+   ];
+
+   const DIRECTIONS = ["left", "right", "up", "down"];
+
+   const LIVES = document.getElementById("lives");
+   const SCORE = document.getElementById("score");
+
+   /**
+    * This function is used to initialize the scene
+    */
+   function init() {
+      var scene = new THREE.Scene();
+      var sceneWidth = window.innerWidth - 20;
+      var sceneHeight = window.innerHeight - 20;
+
+      var camera = new THREE.PerspectiveCamera(90, sceneWidth / sceneHeight, 0.01, 100);
+      camera.position.set(0, -20, 25); // Set the initial Camera Position.
+      camera.lookAt(scene.position);
+
+      var renderer = new THREE.WebGLRenderer({
+         antialias: true
+      });
+      renderer.shadowMap.enabled = true;
+      renderer.setSize(sceneWidth, sceneHeight);
+      document.body.appendChild(renderer.domElement);
+
+      var light = getLight();
+      var leftBorder = getBorder("left", 3, 33, 2, -20, 0, 1, "vertical");
+      var rightBorder = getBorder("right", 3, 33, 2, 20, 0, 1, "vertical");
+      var topBorder = getBorder("top", 43, 3, 2, 0, 18, 1, "horizontal");
+      var downBorder = getBorder("down", 43, 3, 2, 0, -18, 1, "horizontal");
+      var borders = [leftBorder, rightBorder, topBorder, downBorder];
+
+      var interiorWalls = getInteriorWalls();
+
+      var pacman = getPacman(0, -15);
+
+      var ghost0 = getGhost("ghost0", 0, 3);
+      var ghost1 = getGhost("ghost1", -1.5, 0);
+      var ghost2 = getGhost("ghost2", 1.5, 0);
+
+      var ghosts = [ghost0, ghost1, ghost2];
+
+      var potentiatorL1 = getPotentiator("potentiator", -17, 15);
+      var potentiatorR1 = getPotentiator("potentiator", 17, 15);
+      var potentiatorL2 = getPotentiator("potentiator", -17, -15);
+      var potentiatorR2 = getPotentiator("potentiator", 17, -15);
+
+      var potenciators = [potentiatorL1, potentiatorR1, potentiatorL2, potentiatorR2];
+
+      var coins = getCoins();
+
+      var floor = getFloor();
+
+      scene.add(light);
+      borders.forEach(wall => scene.add(wall));
+      interiorWalls.forEach(wall => scene.add(wall));
+
+
+      scene.add(pacman);
+      ghosts.forEach(ghost => scene.add(ghost));
+      potenciators.forEach(potentiator => scene.add(potentiator));
+      coins.forEach(coin => scene.add(coin));
+      scene.add(floor);
+
+      var walls = [...borders, ...interiorWalls]
+
+      document.addEventListener('keydown', function (event) {
+         getPacmanDirection(event.key);
+      });
+
+      LIVES.textContent = "Lives: " + lives;
+      SCORE.textContent = "Score: " + score;
+
+      animate(pacman, ghosts, walls, potenciators, coins, renderer, scene, camera, 0);
+   }
+
+   /**
+    * This function is used to animate the scene
+    * @param {THREE.Mesh} pacman 
+    * @param {Array} walls 
+    * @param {THREE.WebGLRenderer} renderer 
+    * @param {THREE.Scene} scene 
+    * @param {THREE.Camera} camera 
+    */
+   function animate(pacman, ghosts, walls, potenciators, coins, renderer, scene, camera, timestamp) {
+      var deltaTime = timestamp - lastFrameTime;
+      lastFrameTime = timestamp;
+
+      console.log(ghosts.length);
+      if (ghosts.length <= 0) {
+         alert("You win!");
+         location.reload();
+         exit();
+       }
+      checkPacmanCollisions(pacman, walls, ghosts, potenciators, coins, pacmanAttributes, scene);
+      checkGhostsCollisions(ghosts, walls, ghostsAttributes);
+
+      updatePosition(pacman, pacmanAttributes.direction, deltaTime/1000);
+
+      for (let ghost = 0; ghost < ghosts.length; ghost++) {
+         if (ghostsAttributes[ghost].direction === "stop") {
+            ghostsAttributes[ghost].direction = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+         }
+         updatePosition(ghosts[ghost], ghostsAttributes[ghost].direction, deltaTime/1000);
+      }
+
+      renderer.render(scene, camera);
+
+      renderer.setAnimationLoop(function (timestamp) {
+         animate(pacman, ghosts, walls, potenciators, coins, renderer, scene, camera, timestamp);
+      });
+   }
+
+   /**
+    * This function is used to get a light
+    * @returns {THREE.Light}
+    */
+   function getLight() {
+      var light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(0, 0, 2);
+      light.castShadow = true;
+      light.shadow.camera.near = -10;
+      light.shadow.camera.far = 60;
+      light.shadow.camera.left = -30;
+      light.shadow.camera.right = 30;
+      light.shadow.camera.top = 30;
+      light.shadow.camera.bottom = -30;
+      light.shadow.mapSize.width = 4096;
+      light.shadow.mapSize.height = 4096;
+      return light;
+   }
+
+   /**
+    * This function is used to get pacman's mesh 
+    * @param {Number} x0 
+    * @param {Number} y0 
+    * @returns {THREE.Mesh}
+    */
+   function getPacman(x0, y0) {
+      var geometry = new THREE.SphereGeometry(1, 20, 20);
+      var material = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+      var mesh = new THREE.Mesh(geometry, material);
+      mesh.position.z = 1;
+      mesh.position.x = x0;
+      mesh.position.y = y0;
+      mesh.castShadow = true;
+      mesh.name = "pacman";
+
+      return mesh;
+   }
+
+   /**
+    * This function is used to get a ghost's mesh
+    * @param {THREE.WebGLRenderer} renderer 
+    * @param {Number} x0 
+    * @param {Number} y0 
+    * @returns {THREE.Mesh}
+    */
+   function getGhost(name, x0, y0) {
+      var geometry = new THREE.SphereGeometry(1, 20, 20);
+      var material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+      var mesh = new THREE.Mesh(geometry, material);
+      mesh.position.z = 1;
+      mesh.position.x = x0;
+      mesh.position.y = y0;
+      mesh.castShadow = true;
+      mesh.name = name;
+
+      return mesh;
+   }
+
+   /**
+    * This function is used to get a potentiator mesh
+    * @param {String} name
+    * @param {Number} x0 
+    * @param {Number} y0 
+    * @returns {THREE.Mesh}
+    */
+   function getPotentiator(name, x0, y0) {
+      var geometry = new THREE.SphereGeometry(0.7, 20, 20);
+      var material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+      var mesh = new THREE.Mesh(geometry, material);
+      mesh.position.z = 1;
+      mesh.position.x = x0;
+      mesh.position.y = y0;
+      mesh.castShadow = true;
+      mesh.name = name;
+
+      return mesh;
+   }
+
+   /**
+    * This function is used to get all coin meshes
+    * @returns {THREE.Mesh}
+    */
+   function getCoins() {
+      var geometry = new THREE.SphereGeometry(0.3, 20, 20);
+      var material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      var mesh0 = new THREE.Mesh(geometry, material);
+      mesh0.castShadow = true;
+      var meshes = [];
+
+      for (let x = -15; x < 16; x+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(x, 15, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+      for (let x = -12; x < 14; x+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(x, 10, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let x = -7; x < 8; x+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(x, 5, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let x = -7; x < 8; x+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(x, -5, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let x = -14; x < 0; x+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(x, -15, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+      for (let x = 2; x < 15; x+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(x, -15, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let x = -12; x < 14; x+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(x, -10, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let y = 13; y > 1; y-=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(-17, y, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let y = 13; y > 1; y-=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(17, y, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let y = -13; y < -1; y+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(-17, y, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let y = -13; y < -1; y+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(17, y, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let y = -8; y < 9; y+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(12, y, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let y = -8; y < 9; y+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(-12, y, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let y = -3; y < 4; y+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(-7, y, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      for (let y = -3; y < 4; y+=2) {
+         var mesh = mesh0.clone();
+         mesh.position.set(7, y, 1);
+         mesh.name = "coin";
+         meshes.push(mesh);
+      }
+
+      let meshL = mesh0.clone();
+      meshL.position.set(-9.5, 0, 1);
+      meshes.push(meshL);
+
+      let meshR = mesh0.clone();
+      meshR.position.set(9.5, 0, 1);
+      meshes.push(meshR);
+
+      let finalMesh = mesh0.clone();
+      finalMesh.position.set(0, 12.5, 1);
+      meshes.push(finalMesh);
+
+      mesh0.position.set(0, -12.5, 1);
+      meshes.push(mesh0);
+      
+      return meshes;
+   }
+
+   /**
+    * This function is used to get a floor
+    * @returns {THREE.Mesh}
+    */
+   function getFloor() {
+      var geometry = new THREE.PlaneGeometry(37, 33);
+      var mesh = new THREE.Mesh(geometry, getWoodMaterial("floor"));
+      mesh.receiveShadow = true;
+
+      return mesh;
+   }
+
+   /**
+    * This function is used to get a border
+    * @param {String} name 
+    * @param {Number} x 
+    * @param {Number} y 
+    * @param {Number} z 
+    * @param {Number} posX 
+    * @param {Number} posY 
+    * @param {Number} posZ 
+    * @returns {THREE.Mesh}
+    */
+   function getBorder(name, x, y, z, posX, posY, posZ, type) {
+      var geometry = new THREE.BoxGeometry(x, y, z);
+      var mesh = new THREE.Mesh(geometry, getWoodMaterial(type));
+      mesh.receiveShadow = true;
+      mesh.position.set(posX, posY, posZ);
+      mesh.name = name;
+
+      return mesh;
+   }
+
+   /**
+    * This function is used to create the interior walls
+    * @returns {THREE.Mesh[]} 
+    */
+   function getInteriorWalls() {
+      /** 
+       * The names of the walls are not used in the code but are helpful for debugging.
+       * They are named according to the design order of the maze, from top to bottom.
+       * Symmetric walls have the same number but are distinguished by 'L' for left or 'R' for right.
+       * If a wall is not symmetric, the letter C is used instead.
+       */
+      var interiorWalls = [
+         getBorder("wallL0", 14, 2, 1, -8.5, 12.5, 0.5, "horizontal"),
+         getBorder("wallR0", 14, 2, 1, 8.5, 12.5, 0.5, "horizontal"),
+         getBorder("wallL1", 2, 23, 1, -14.5, 0, 0.5, "vertical"),
+         getBorder("wallR1", 2, 23, 1, 14.5, 0, 0.5, "vertical"),
+         getBorder("wallC2", 21, 2, 1, 0, 7.5, 0.5, "horizontal"),
+         getBorder("wallL3", 2, 5, 1, -9.5, 4, 0.5, "shortVertical"),
+         getBorder("wallR3", 2, 5, 1, 9.5, 4, 0.5, "shortVertical"),
+         getBorder("wallL4", 2, 5, 1, -4.5, 1, 0.5, "shortVertical"),
+         getBorder("wallR4", 2, 5, 1, 4.5, 1, 0.5, "shortVertical"),
+         getBorder("wallC5", 11, 2, 1, 0, -2.5, 0.5, "horizontal"),
+         getBorder("wallL6", 2, 5, 1, -9.5, -4, 0.5, "shortVertical"),
+         getBorder("wallR6", 2, 5, 1, 9.5, -4, 0.5, "shortVertical"),
+         getBorder("wallL7", 3, 2, 1, -17, 0, 0.5, ""),
+         getBorder("wallR7", 3, 2, 1, 17, 0, 0.5, ""),
+         getBorder("wallC8", 21, 2, 1, 0, -7.5, 0.5, "horizontal"),
+         getBorder("wallL9", 14, 2, 1, -8.5, -12.5, 0.5, "horizontal"),
+         getBorder("wallR9", 14, 2, 1, 8.5, -12.5, 0.5, "horizontal"),
+
+      ];
+      return interiorWalls;
+   }
+
+   /**
+    * This function is used to get a wood material
+    * @returns {THREE.MeshPhysicalMaterial}
+    */
+    function getWoodMaterial(type) {
+      var texture = new THREE.TextureLoader().load("painted_brick_ao_4k.jpg");
+      var material = new THREE.MeshPhysicalMaterial({
+         map: texture
+      });
+      material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
+      switch (type) {
+         case "floor":
+            material.map.repeat.set(10, 10);
+            break;
+         case "vertical":
+            material.map.repeat.set(1, 6);
+            break;
+         case "shortVertical":
+            material.map.repeat.set(1, 3);
+            break;
+         case "horizontal":
+            material.map.repeat.set(6, 1);
+            break;
+         default:
+            material.map.repeat.set(2, 2);
+            break;
+      }
+      material.side = THREE.DoubleSide;
+
+      return material;
+   }
+
+   /**
+    * This function updates the direction of pacman
+    * @param {String} key 
+    */
+   function getPacmanDirection(key) {
+      if (!isMovement) {
+         isMovement = true;
+      }
+      switch (key) {
+         case 'ArrowLeft':
+            pacmanAttributes.direction = "left";
+            break;
+
+         case 'ArrowRight':
+            pacmanAttributes.direction = "right";
+            break;
+
+         case 'ArrowUp':
+            pacmanAttributes.direction = "up";
+            break;
+
+         case 'ArrowDown':
+            pacmanAttributes.direction = "down";
+            break;
+      }
+   }
+
+   /**
+    * This function updates the position of a mesh according to the given direction
+    * @param {THREE.Mesh} mesh 
+    * @param {String} direction 
+    */
+   function updatePosition(mesh, direction, deltaTime) {
+      if (isMovement) {
+         switch (direction) {
+            case 'left':0
+               mesh.position.x -= stepX * deltaTime;
+               break;
+
+            case 'right':
+               mesh.position.x += stepX * deltaTime;
+               break;
+
+            case 'up':
+               mesh.position.y += stepY * deltaTime;
+               break;
+
+            case 'down':
+               mesh.position.y -= stepY * deltaTime;
+               break;
+         }
+      }
+   }
+   /**
+    * This function is used to check wall collision
+    * @param {THREE.Mesh} mesh 
+    * @param {Array} walls 
+    */
+   function checkWallCollisions(mesh, walls, attributes) {
+      var isNoCollision = true;
+      var originPosition = mesh.position.clone();
+
+      const positionAttribute = mesh.geometry.getAttribute('position');
+      const localVertex = new THREE.Vector3();
+      const globalVertex = new THREE.Vector3();
+      for (let vertexIndex = 0; vertexIndex < positionAttribute.count; vertexIndex++) {
+         localVertex.fromBufferAttribute(positionAttribute, vertexIndex);
+         globalVertex.copy(localVertex).applyMatrix4(mesh.matrixWorld);
+         var directionVector = globalVertex.sub(mesh.position);
+         var ray = new THREE.Raycaster(originPosition, directionVector.clone().normalize());
+         var collisionResults = ray.intersectObjects(walls);
+         if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
+            // Collision detected
+            isNoCollision = false;
+            if (!attributes.isColliding) {
+               // Only stops in the first detection.
+               // This is needed to avoid direction to be "stop" in the next frames.
+               attributes.isColliding = true;
+               attributes.direction = "stop";
+            } else {
+               // This code allows to detect the direction of the collision.
+               const modX = Math.abs(directionVector.x);
+               const modY = Math.abs(directionVector.y);
+
+               let collisionDirection = "";
+
+               if (modX > modY) {
+                  collisionDirection = directionVector.x > 0 ? "right" : "left";
+               } else {
+                  collisionDirection = directionVector.y > 0 ? "up" : "down";
+               }
+
+               //if the direction is the same as the collision direction, the direction is stopped
+               if (attributes.direction === collisionDirection) {
+                  attributes.direction = "stop";
+                  break;
+               }
+
+            }
+
+         }
+      }
+      if (isNoCollision) {
+         // This code is only reached if there is no collision.
+         // It is needed to detect the next collision.
+         attributes.isColliding = false;
+      }
+   }
+
+   /**
+    * This function is used to check pacman's collisions
+    * @param {THREE.Mesh} mesh
+    * @param {THREE.Mesh[]} ghosts
+    * @param {Array} walls 
+    * @param {GlobalObject} attributes
+    * @param {THREE.Scene} scene 
+    * @param {THREE.Mesh[]} potenciators
+    */
+   function checkPacmanCollisions(mesh, walls, ghosts, potenciators, coins, attributes, scene) {
+      if (isMovement) {
+         checkWallCollisions(mesh, walls, attributes);
+         var isDeadGhostScored = false;
+
+         var originPosition = mesh.position.clone();
+
+         const positionAttribute = mesh.geometry.getAttribute('position');
+         const localVertex = new THREE.Vector3();
+         const globalVertex = new THREE.Vector3();
+         for (let vertexIndex = 0; vertexIndex < positionAttribute.count; vertexIndex++) {
+            localVertex.fromBufferAttribute(positionAttribute, vertexIndex);
+            globalVertex.copy(localVertex).applyMatrix4(mesh.matrixWorld);
+            var directionVector = globalVertex.sub(mesh.position);
+            var ray = new THREE.Raycaster(originPosition, directionVector.clone().normalize());
+            var collisionResults = ray.intersectObjects(ghosts);
+            if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
+               // Collision detected
+               if (isPotentiator) {
+                  scene.remove(collisionResults[0].object);
+                  let idx = ghosts.indexOf(collisionResults[0].object);
+                  ghosts.splice(idx, 1);
+               } else {
+                  lives--;
+                  LIVES.textContent = "Lives: " + lives;
+                  if (lives === 0) {
+                     alert("Game Over");
+                     location.reload();
+                  } else {
+                     mesh.position.x = 0;
+                     mesh.position.y = -15;
+                  }
+               }
+            }
+            var potenciatorsCollisionResults = ray.intersectObjects(potenciators);
+            if (potenciatorsCollisionResults.length > 0 && potenciatorsCollisionResults[0].distance < directionVector.length()) {
+               // Collision detected
+               isPotentiator = true;
+               scene.remove(potenciatorsCollisionResults[0].object);
+               let idxx = potenciators.indexOf(potenciatorsCollisionResults[0].object);
+               potenciators.splice(idxx, 1);
+               greenMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+               redMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+               ghosts.forEach(ghost => ghost.material = greenMaterial);
+               setTimeout(() => {
+                  isPotentiator = false;
+                  ghosts.forEach(ghost => ghost.material = redMaterial);
+               }, 10000);
+
+            }
+            var coinsCollisionResults = ray.intersectObjects(coins);
+            if (coinsCollisionResults.length > 0 && coinsCollisionResults[0].distance < directionVector.length()) {
+               // Collision detected
+               scene.remove(coinsCollisionResults[0].object);
+               let idxxx = coins.indexOf(coinsCollisionResults[0].object);
+               coins.splice(idxxx, 1);
+               score += 1;
+               SCORE.textContent = "Score: " + score;
+
+            }
+
+         }
+      }
+   }
+
+   /**
+    * This function is used to check all ghost's collisions
+    * @param {THREE.Mesh[]} meshes 
+    * @param {Array} walls 
+    * @param {GlobalObject} attributes 
+    */
+   function checkGhostsCollisions(meshes, walls, attributes) {
+      for (let ghost = 0; ghost < meshes.length; ghost++) {
+         checkWallCollisions(meshes[ghost], walls, attributes[ghost]);
+      }
+   }
+
+
+
+</script>
+
+
+
+</html>

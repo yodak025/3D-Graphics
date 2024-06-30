@@ -1,0 +1,14 @@
+#display{
+    color: white;
+    position: fixed;
+    background-color: blueviolet;
+    width: 200px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+p{
+    margin: 5%;
+    padding: 0;
+}

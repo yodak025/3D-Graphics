@@ -9,6 +9,7 @@ export class PacWalls {
 
     generate_paths() {
         this.grid = this.walls.path();
+        this.grid[18][108] = -1
     }
 
 

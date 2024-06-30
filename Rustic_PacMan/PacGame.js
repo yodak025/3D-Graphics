@@ -1,7 +1,6 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.120.0/build/three.module.js';
 import { PacWalls } from './PacWalls.js';
 import { PacMan } from './PacEntities.js';
-import { PacGhost } from './PacEntities.js';
 import { PacBoard } from './PacBoard.js';
 
 export class Game {
@@ -35,12 +34,13 @@ export class Game {
 
         this.pacman = new PacMan()
 
-        this.blue_ghost = new PacGhost(this.board.board);
-        this.orange_ghost = new PacGhost(this.board.board);
-        this.pink_ghost = new PacGhost(this.board.board);
-        this.red_ghost = new PacGhost(this.board.board);
+        
+        //this.orange_ghost = new PacGhost(this.board);
+        //this.pink_ghost = new PacGhost(this.board);
+        //this.red_ghost = new PacGhost(this.board);
 
-        this.ghosts = [this.blue_ghost, this.orange_ghost, this.pink_ghost, this.red_ghost];
+        this.ghosts = []
+            //, this.orange_ghost, this.pink_ghost, this.red_ghost];
 
         
     }
@@ -85,8 +85,8 @@ export class Game {
                 }
 
                 break;
-            case 'ArrowLeft':
-                if (0 != this.board.board[this.pacman.position[0] - this.pacman.step][this.pacman.position[1]]) {
+            case 'a':
+                if (0 != this.board.paths[this.pacman.position[0] - this.pacman.step][this.pacman.position[1]]) {
                     this.pacman.position[0] -= this.pacman.step;
                     this.camera.position.x -= this.pacman.step;
                     this.pacman.step = 1
@@ -99,8 +99,8 @@ export class Game {
                 }
                 break;
 
-            case 'ArrowRight':
-                if (0 != this.board.board[this.pacman.position[0] + this.pacman.step][this.pacman.position[1]]) {
+            case 'd':
+                if (0 != this.board.paths[this.pacman.position[0] + this.pacman.step][this.pacman.position[1]]) {
 
                     this.pacman.position[0] += this.pacman.step;
                     this.camera.position.x += this.pacman.step;
@@ -113,8 +113,8 @@ export class Game {
                 }
                 break;
 
-            case 'ArrowDown':
-                if (0 != this.board.board[this.pacman.position[0]][this.pacman.position[1] - this.pacman.step]) {
+            case 's':
+                if (0 != this.board.paths[this.pacman.position[0]][this.pacman.position[1] - this.pacman.step]) {
                     this.pacman.position[1] -= this.pacman.step;
                     this.camera.position.y -= this.pacman.step;
                     this.pacman.step = 1
@@ -126,8 +126,8 @@ export class Game {
                 }
                 break;
 
-            case 'ArrowUp':
-                if (0 != this.board.board[this.pacman.position[0]][this.pacman.position[1] + this.pacman.step]) {
+            case 'w':
+                if (0 != this.board.paths[this.pacman.position[0]][this.pacman.position[1] + this.pacman.step]) {
                     this.pacman.position[1] += this.pacman.step;
                     this.camera.position.y += this.pacman.step;
                     this.pacman.step = 1
@@ -143,13 +143,12 @@ export class Game {
 
         this.board.remove_coin(this.pacman.position)
 
+        // board actualiza los fantasmas aquí
 
-        this.blue_ghost.find_pacman(this.pacman)
-        this.orange_ghost.find_pacman(this.pacman)
-        this.pink_ghost.find_pacman(this.pacman)
-        this.red_ghost.find_pacman(this.pacman)
+        this.board.find_pacman(this.pacman)
 
-        for (const ghost of this.ghosts) {
+
+        for (const ghost of this.board.ghosts) {
 
             let c1 = (((this.pacman.position[0] > ghost.position[0]) && (lastpos[0] < ghost.position[0]))
                 && (this.pacman.position[1] == ghost.position[1]));
@@ -161,8 +160,8 @@ export class Game {
                 && (this.pacman.position[0] == ghost.position[0]));
 
             if (c1 || c2 || c3 || c4) {
-                ghost.position = ghost.init_position.slice();
-                ghost.update_movement();
+                //ghost.position = ghost.init_position.slice();
+                //ghost.update_movement();
             }
 
             if (ghost.position[0] == this.pacman.position[0]
@@ -225,6 +224,10 @@ export class Game {
         for (let i = 0; i < dim[0]; i++) {
             for (let j = 0; j < dim[1]; j++) {
                 switch (pac_map[i][j]) {
+                    case -1 :
+                        this.meshes[i][j] = null
+                        break
+
                     case 0:
                         this.meshes[i][j] = new THREE.Mesh(coin_geo, this.texture);
                         this.meshes[i][j].name = 'coin';
@@ -253,20 +256,22 @@ export class Game {
                         alert("Error in the wall constructor");
                         exit();
                 }
-                this.meshes[i][j].position.x = i - 56;
-                this.meshes[i][j].position.y = j - 62;
-                this.meshes[i][j].position.z = 0.5;
+                if (this.meshes[i][j]!= null) {
+                    this.meshes[i][j].position.x = i - 56;
+                    this.meshes[i][j].position.y = j - 62;
+                    this.meshes[i][j].position.z = 0.5;
 
-
-                this.scene.add(this.meshes[i][j]);
+                    this.scene.add(this.meshes[i][j]);
+                }
             }
 
         }
 
     };
 
-
-    set_board() {
+    // Precaución, chapuza funcional a continuación. si no borras esos meshes tu ordenador va a explotar
+    //ademas es raro, aparentemente hace lo mismo que removecoins
+    update_board() {
         //Comprobar la posición de pacman en el tablero 
         for (let i = 0; i < this.walls.dim[0]; i++) {
             for (let j = 0; j < this.walls.dim[1]; j++) {
@@ -312,7 +317,7 @@ export class Game {
 
     each_frame() {
 
-        this.set_board()
+        this.update_board()
 
         if (this.board.score > 10000) {
             this.pacman.orbs += 1;
